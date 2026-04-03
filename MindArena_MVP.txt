@@ -1,0 +1,436 @@
+1) MVP (Must-Have Features)
+1. Authentication (Sign Up / Login)
+Description:
+ Simple account creation using email with password, along with secure login functionality.
+Why it’s essential:
+ Required to uniquely identify each student and persist their progress. Authentication is a fundamental building block of any personalized learning platform.
+2. Profile Setup (Grade & Subjects)
+Description:
+ After login, students select their grade level (e.g., Grade 5, Grade 10) and preferred subjects.
+Why it’s essential:
+ Enables immediate personalization by filtering relevant content based on the student’s academic level and interests. This ensures the experience is useful from the first interaction.
+3. Question Browsing & Practice
+Description:
+ A simple interface where students can access and practice questions by grade and subject. For MVP, limited subjects (e.g., Math, English) and basic difficulty levels are included.
+Why it’s essential:
+ This is the core of the product. Without questions, there is no learning experience. This feature validates the platform’s main value: structured, interactive practice.
+4. Answer Submission & Instant Feedback
+Description:
+ Students submit answers and instantly receive feedback indicating whether the answer is correct or incorrect, along with the correct answer or a hint.
+Why it’s essential:
+ Immediate feedback reinforces learning and helps students quickly correct mistakes. It keeps engagement high and makes practice effective.
+5. Progress Dashboard with Points
+Description:
+ A basic dashboard showing:
+●Total questions attempted
+●Accuracy (percentage correct)
+●Points earned (e.g., +1 per correct answer)
+●Optional: daily streak indicator
+Why it’s essential:
+ Progress tracking motivates consistent usage. Gamified elements like points and streaks increase engagement and help users visualize improvement over time.
+6. Class-Level Leaderboard
+Description:
+ A simple leaderboard ranking students within the same class or grade based on points or accuracy.
+Why it’s essential:
+ Introduces healthy competition, encouraging students to practice more. Keeping it limited to class-level avoids unnecessary complexity while still delivering motivational value.
+
+7. Basic Navigation
+Description:
+ Simple and intuitive navigation between core sections:
+●Practice
+●Dashboard
+●Leaderboard
+Why it’s essential:
+ Ensures usability and smooth user experience. Even in an MVP, users must easily move between key features without confusion.
+2) MVP User Flow
+1. Sign Up / Login
+Description:
+ A new student opens the app and either creates an account or logs in. They enter minimal information and confirm via email or OTP.
+2. Profile Setup
+Description:
+ On first login, the student selects their grade level and one or two subjects they want to practice.
+3. Dashboard
+Description:
+ The student lands on a simple dashboard showing:
+●Your Score: X points
+●Accuracy: Y%
+●Buttons like “Practice” and “Leaderboard” for quick navigation.
+4. Practice Questions
+Description:
+ The student taps “Practice” (or “Recommended”) and sees a question, e.g., a math problem or quiz.
+5. Answer & Feedback
+Description:
+ The student selects or types an answer and submits. The app immediately:
+●Indicates if the answer is correct or incorrect
+●Shows the right answer or a hint
+●Awards points if correct
+6. Repeat Practice
+Description:
+ After feedback, the student can attempt another question.
+●Short sessions (e.g., 5 questions) are possible
+●Each correct answer adds to the total points
+7. View Progress
+Description:
+ The student returns to the dashboard to see updated statistics and points.
+●Shows current points, accuracy, and streak count
+8. Check Leaderboard (Optional)
+Description:
+ The student can view the class leaderboard to see their rank among peers.
+●Motivates additional practice to climb ranks
+9. Daily Reminder (Optional)
+Description:
+ The app may remind the student to practice daily.
+●Can be a banner or notification (optional for MVP)
+10. Sign Out
+Description:
+ The student can log out or simply close the app.
+●On return, the profile and stats are remembered
+●Progress continues from where they left off
+Summary:
+The MVP flow is streamlined: Onboard → Practice → Feedback → Track. It delivers real value (practice + learning) with minimal steps, keeping it simple and user-friendly.
+
+3) Data Models
+Model: User
+Description: Student account for the learning platform.
+Attributes:
+●id (string, required, unique) — Unique user identifier.
+●email (string, required, unique) — User login email.
+●passwordHash (string, required) — Encrypted password.
+●displayName (string) — Optional name or nickname.
+●gradeLevelId (string, required) — Linked grade level.
+●createdAt (date, required) — Account creation time.
+●points (number, default 0) — Total earned points.
+Relationships:
+●User → GradeLevel (many-to-one): each student belongs to one grade level.
+●User ↔ Subject (many-to-many): each student can select multiple subjects (and each subject can have many students).
+●User → Attempt (one-to-many): a student can make many answer attempts.
+Model: GradeLevel
+Description: Academic grade or class (e.g. “Grade 5”).
+Attributes:
+●id (string, required, unique) — Unique grade identifier.
+●name (string, required, unique) — Grade label (e.g. “Grade 5”).
+Relationships:
+●GradeLevel → User (one-to-many): one grade level includes many students.
+●GradeLevel → Question (one-to-many): one grade level can have many questions.
+Model: Subject
+Description: Academic subject (e.g. Math, English).
+Attributes:
+●id (string, required, unique) — Unique subject identifier.
+●name (string, required, unique) — Subject name.
+Relationships:
+●Subject → Question (one-to-many): each subject can have many questions.
+●Subject ↔ User (many-to-many): each subject can be chosen by many students (and each student can choose many subjects).
+Model: Question
+Description: A practice question for students.
+Attributes:
+●id (string, required, unique) — Unique question identifier.
+●gradeLevelId (string, required) — Linked grade level.
+●subjectId (string, required) — Linked subject.
+●content (string, required) — Question text.
+●correctAnswer (string, required) — Correct answer.
+●hint (string) — Optional hint.
+●explanation (string) — Optional explanation.
+●difficultyLevel (string) — Difficulty label.
+Relationships:
+●Question → GradeLevel (many-to-one): each question is tagged with one grade level.
+●Question → Subject (many-to-one): each question belongs to one subject.
+●Question → Attempt (one-to-many): one question can have many student attempts.
+Model: Attempt
+Description: A student’s attempt to answer a question.
+Attributes:
+●id (string, required, unique) — Unique attempt identifier.
+●userId (string, required) — Linked user.
+●questionId (string, required) — Linked question.
+●answerGiven (string, required) — Submitted answer.
+●isCorrect (boolean, required) — Correctness flag.
+●createdAt (date, required) — Attempt time.
+Relationships:
+●Attempt → User (many-to-one): each attempt is made by one student.
+●Attempt → Question (many-to-one): each attempt is for one question.
+Notes
+●The User–Subject many-to-many relationship can be implemented via a join table (e.g. UserSubject with userId and subjectId) if needed.
+●We have omitted any teacher/parent or course models since they are outside MVP scope.
+●Statistics like “accuracy” and “streak” can be calculated from the Attempt records and do not require separate tables for MVP.
+●All id fields are assumed to be unique identifiers. Required fields must be non-null; for example, email, passwordHash, gradeLevelId, question content, and correctAnswer are all required.
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 5)  API Endpoints
+    API Endpoint Specification
+
+    ## Register User
+    Method: POST
+    Path: /api/auth/register
+    Purpose: Creates a new student account using email and password.
+
+    Request Example:
+    {
+      "email": "student@example.com",
+      "password": "securePassword123"
+    }
+
+    Successful Response (201 Created):
+    Body:
+    {
+      "message": "User created successfully",
+      "user": {
+        "id": "user_123",
+        "email": "student@example.com",
+        "displayName": null,
+        "points": 0
+      },
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+
+    Status Codes:
+    201: User successfully created.
+    400: Bad request (e.g., missing email/password, invalid email format).
+    409: Conflict (email already exists).
+    500: Internal server error.
+
+
+    ## Login User
+    
+    Method: POST
+    Path: /api/auth/login
+    Purpose: Authenticates an existing user and returns an access token.
+
+    Request Example:
+    {
+      "email": "student@example.com",
+      "password": "securePassword123"
+    }
+
+    Successful Response (200 OK):
+    Body:
+    {
+      "message": "Login successful",
+      "user": {
+        "id": "user_123",
+        "email": "student@example.com",
+        "displayName": null,
+        "gradeLevelId": null,
+        "points": 0
+      },
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+
+    Status Codes:
+    200: Login successful.
+    400: Missing email/password.
+    401: Invalid credentials.
+    500: Internal server error.
+
+
+    ## Get Current User Profile
+
+    Method: GET
+    Path: /api/users/me
+    Purpose: Retrieves the authenticated user’s profile, including grade and subjects (for dashboard and profile setup validation).
+
+    Headers:
+    Authorization: Bearer {token}
+
+    Request Example:
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    Successful Response (200 OK):
+    Body:
+    {
+      "id": "user_123",
+      "email": "student@example.com",
+      "displayName": null,
+      "gradeLevelId": "grade_5",
+      "subjectIds": ["subj_math", "subj_english"],
+      "points": 120
+    }
+
+    Status Codes:
+    200: Success.
+    401: Unauthorized (missing/invalid token).
+    500: Internal server error.
+
+
+  ## Setup User Profile (Grade & Subjects)
+
+    Method: PATCH
+    Path: /api/users/me/profile
+    Purpose: Sets the student’s grade level and preferred subjects after first login.
+   
+    Headers:
+    Authorization: Bearer {token}
+
+    Request Example:
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    {
+      "gradeLevelId": "grade_5",
+      "subjectIds": ["subj_math", "subj_english"]
+    }
+
+    Successful Response (200 OK):
+    Body:
+    {
+      "message": "Profile updated successfully",
+      "user": {
+        "id": "user_123",
+        "email": "student@example.com",
+        "gradeLevelId": "grade_5",
+        "subjectIds": ["subj_math", "subj_english"]
+      }
+    }
+
+    Status Codes:
+    200: Profile updated.
+    400: Missing gradeLevelId or subjectIds, or invalid IDs.
+    401: Unauthorized.
+    500: Internal server error.
+
+
+    ## List Practice Questions
+
+    Method: GET
+    Path: /api/practice/questions
+    Purpose: Returns questions filtered by the user’s grade level and optionally by a specific subject (for browsing & practice).
+
+    Headers:
+    Authorization: Bearer {token}
+    Query Parameters (optional):
+    subjectId – filter by a single subject (if omitted, returns questions from all user’s selected subjects).
+
+    Request Example:
+
+    GET /api/practice/questions?subjectId=subj_math HTTP/1.1
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   
+    Successful Response (200 OK):
+    Body:
+    {
+      "questions": [
+        {
+          "id": "q_101",
+          "content": "What is 15 + 27?",
+          "difficultyLevel": "easy",
+          "hint": "Add the tens and ones separately."
+        },
+        {
+          "id": "q_102",
+          "content": "Solve: 3x = 12",
+          "difficultyLevel": "medium",
+          "hint": "Divide both sides by 3."
+        }
+      ]
+    }
+
+    Status Codes:
+    200: Success.
+    401: Unauthorized.
+    404: No questions found for the user’s grade/subjects.
+    500: Internal server error.
+
+
+   ## Submit Answer & Get Instant Feedback
+
+    Method: POST
+    Path: /api/attempts
+    Purpose: Records a student’s answer, updates points if correct, and returns immediate feedback (correct/incorrect, correct answer, hint).
+   
+    Headers:
+    Authorization: Bearer {token}
+
+    Request Example:
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    {
+      "questionId": "q_101",
+      "answerGiven": "42"
+    }
+
+    Successful Response (200 OK):
+    Body:
+    {
+      "isCorrect": true,
+      "correctAnswer": "42",
+      "hint": "Add the tens and ones separately.",
+      "pointsAwarded": 1,
+      "totalPoints": 121
+    }
+
+    Status Codes:
+    200: Answer processed.
+    400: Missing questionId or answerGiven.
+    401: Unauthorized.
+    404: Question not found.
+    500: Internal server error.
+
+
+    ## Get Dashboard Stats (Points & Accuracy)
+
+    Method: GET
+    Path: /api/users/me/stats
+    Purpose: Returns total points, accuracy (percentage correct), and total questions attempted for the progress dashboard.
+
+    Headers:
+    Authorization: Bearer {token}
+
+    Request Example:
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   
+    Successful Response (200 OK):
+    Body:
+    {
+      "points": 121,
+      "accuracy": 84.5,
+      "totalAttempted": 45
+    }
+
+    Status Codes:
+    200: Success.
+    401: Unauthorized.
+    500: Internal server error.
+
+
+    ## Get Class-Level Leaderboard
+
+    Method: GET
+    Path: /api/leaderboard
+    Purpose: Returns students from the same grade level as the authenticated user, ranked by points (descending). Also includes each student’s accuracy.
+    
+    Headers:
+    Authorization: Bearer {token}
+
+    Request Example:
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   
+    Successful Response (200 OK):
+    Body:
+    {
+      "gradeLevelId": "grade_5",
+      "rankings": [
+        {
+          "userId": "user_456",
+          "displayName": "Emma",
+          "points": 210,
+          "accuracy": 92.0
+        },
+        {
+          "userId": "user_123",
+          "displayName": null,
+          "points": 121,
+          "accuracy": 84.5
+        }
+      ]
+    }
+
+    Status Codes:
+    200: Success.
+    401: Unauthorized.
+    500: Internal server error.

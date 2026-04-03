@@ -7,12 +7,16 @@ export const createQuestionsTable = () => {
       grade_level_id INT NOT NULL,
       subject_id INT NOT NULL,
       content TEXT NOT NULL,
-      correct_answer TEXT NOT NULL,
+      correct_answer VARCHAR(500) NOT NULL,
       hint TEXT,
       explanation TEXT,
-      difficulty_level VARCHAR(50),
-      FOREIGN KEY (grade_level_id) REFERENCES grade_levels(id),
-      FOREIGN KEY (subject_id) REFERENCES subjects(id)
+      difficulty_level VARCHAR(20) DEFAULT 'medium',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (grade_level_id) REFERENCES grade_levels(id) ON DELETE CASCADE,
+      FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+      INDEX idx_grade_subject (grade_level_id, subject_id),
+      INDEX idx_difficulty (difficulty_level)
     );
   `;
   return new Promise((resolve, reject) => {
@@ -22,6 +26,86 @@ export const createQuestionsTable = () => {
         console.log('Questions table created or exists');
         resolve();
       }
+    });
+  });
+};
+
+export const getQuestionsByGradeAndSubject = (gradeLevelId, subjectId = null) => {
+  let sql = `
+    SELECT q.id, q.content, q.difficulty_level, q.hint,
+           gl.name as grade_level_name, s.name as subject_name
+    FROM questions q
+    INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
+    INNER JOIN subjects s ON q.subject_id = s.id
+    WHERE q.grade_level_id = ?
+  `;
+  let params = [gradeLevelId];
+  
+  if (subjectId) {
+    sql += ` AND q.subject_id = ?`;
+    params.push(subjectId);
+  }
+  
+  sql += ` ORDER BY q.difficulty_level, RAND() LIMIT 20`;
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, params, (err, results) => {
+      if (err) reject(err);
+      else resolve(results);
+    });
+  });
+};
+
+export const getQuestionsByUserSubjects = (userId) => {
+  const sql = `
+    SELECT DISTINCT q.id, q.content, q.difficulty_level, q.hint,
+           gl.name as grade_level_name, s.name as subject_name
+    FROM questions q
+    INNER JOIN user_subjects us ON q.subject_id = us.subject_id
+    INNER JOIN users u ON us.user_id = u.id AND u.id = ?
+    INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
+    INNER JOIN subjects s ON q.subject_id = s.id
+    WHERE q.grade_level_id = u.grade_level_id
+    ORDER BY q.difficulty_level, RAND()
+    LIMIT 20
+  `;
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [userId], (err, results) => {
+      if (err) reject(err);
+      else resolve(results);
+    });
+  });
+};
+
+export const getQuestionById = (id) => {
+  const sql = `
+    SELECT q.*, gl.name as grade_level_name, s.name as subject_name
+    FROM questions q
+    INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
+    INNER JOIN subjects s ON q.subject_id = s.id
+    WHERE q.id = ?
+  `;
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [id], (err, results) => {
+      if (err) reject(err);
+      else resolve(results[0]);
+    });
+  });
+};
+
+export const createQuestion = (questionData) => {
+  const { gradeLevelId, subjectId, content, correctAnswer, hint, explanation, difficultyLevel } = questionData;
+  const sql = `
+    INSERT INTO questions (grade_level_id, subject_id, content, correct_answer, hint, explanation, difficulty_level)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [gradeLevelId, subjectId, content, correctAnswer, hint, explanation, difficultyLevel], (err, results) => {
+      if (err) reject(err);
+      else resolve(results.insertId);
     });
   });
 };

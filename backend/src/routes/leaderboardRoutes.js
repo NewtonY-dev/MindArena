@@ -4,6 +4,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// Get Class-Level Leaderboard
 router.get("/", authMiddleware, getLeaderboard);
 
 export default router;
