@@ -11,6 +11,9 @@ class ChallengeRoomManager {
   async createRoom({ hostId, subject, difficulty = 'medium', questionCount = 10, timePerQuestion = 10 }) {
     const roomCode = generateRoomCode();
     
+    // Clear any stale cache entry for this room code (shouldn't exist but be safe)
+    this.activeRooms.delete(roomCode);
+    
     const sql = `
       INSERT INTO challenge_rooms 
         (room_code, host_id, subject, difficulty, question_count, time_per_question, status)
@@ -45,6 +48,7 @@ class ChallengeRoomManager {
 
       // Cache the room
       this.activeRooms.set(roomCode, room);
+      console.log(`[CREATE] Room ${roomCode} cached with opponentId:`, room.opponentId);
 
       return {
         roomId: result.insertId,
@@ -62,6 +66,7 @@ class ChallengeRoomManager {
   async joinRoom({ roomCode, opponentId }) {
     // Check cache first
     let room = this.activeRooms.get(roomCode);
+    console.log(`[JOIN] Cache lookup for ${roomCode}:`, room ? `found (opponentId: ${room.opponentId})` : 'not found');
     
     if (!room) {
       // Fetch from database
@@ -72,7 +77,7 @@ class ChallengeRoomManager {
         FROM challenge_rooms cr
         LEFT JOIN challenge_participants cp1 ON cr.id = cp1.room_id AND cp1.user_id = cr.host_id
         LEFT JOIN challenge_participants cp2 ON cr.id = cp2.room_id AND cp2.user_id = cr.opponent_id
-        WHERE cr.room_code = ? AND cr.status = 'waiting'
+        WHERE cr.room_code = ? AND cr.status = 'waiting' AND cr.opponent_id IS NULL
       `;
       const results = await db.queryAsync(sql, [roomCode]);
       
@@ -86,7 +91,7 @@ class ChallengeRoomManager {
         id: dbRoom.id,
         roomCode: dbRoom.room_code,
         hostId: dbRoom.host_id,
-        opponentId: dbRoom.opponent_id,
+        opponentId: dbRoom.opponent_id || null, // Convert DB NULL to JS null
         subject: dbRoom.subject,
         difficulty: dbRoom.difficulty,
         questionCount: dbRoom.question_count,
@@ -97,6 +102,8 @@ class ChallengeRoomManager {
       };
     }
 
+    console.log(`[JOIN] Checking room ${roomCode} - opponentId:`, room.opponentId, 'type:', typeof room.opponentId);
+    
     if (room.opponentId) {
       throw new Error('Room is already full');
     }

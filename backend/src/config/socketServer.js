@@ -38,57 +38,52 @@ export const initializeSocketServer = (httpServer) => {
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.userId}, Socket ID: ${socket.id}`);
 
-    // Create Challenge Room
+    // Create Challenge Room (socket only joins to existing room created via REST)
     socket.on('create_challenge', async (data, callback) => {
       try {
-        const { subject, difficulty, questionCount, timePerQuestion } = data;
-        const result = await challengeRoomManager.createRoom({
-          hostId: socket.userId,
-          subject,
-          difficulty,
-          questionCount,
-          timePerQuestion
-        });
+        const { roomCode, subject, difficulty, questionCount, timePerQuestion } = data;
         
-        socket.join(result.roomCode);
-        socket.currentRoom = result.roomCode;
+        // Just join the socket room - room already created via REST
+        socket.join(roomCode);
+        socket.currentRoom = roomCode;
         
-        callback({ success: true, data: result });
+        callback({ success: true, data: { roomCode } });
         
         // Notify room of new host
-        socket.to(result.roomCode).emit('host_joined', {
+        socket.to(roomCode).emit('host_joined', {
           hostId: socket.userId,
           hostName: socket.user.displayName || 'Player 1'
         });
       } catch (error) {
-        console.error('Create challenge error:', error);
+        console.error('Create challenge socket error:', error);
         callback({ success: false, error: error.message });
       }
     });
 
-    // Join Challenge Room
+    // Join Challenge Room (socket only - DB already updated via REST)
     socket.on('join_challenge', async (data, callback) => {
       try {
         const { roomCode } = data;
-        const result = await challengeRoomManager.joinRoom({
-          roomCode,
-          opponentId: socket.userId
-        });
+        
+        // Get room info (doesn't modify DB - join already done via REST)
+        const room = await challengeRoomManager.getRoomInfo(roomCode);
+        if (!room) {
+          throw new Error('Room not found');
+        }
 
         socket.join(roomCode);
         socket.currentRoom = roomCode;
 
-        callback({ success: true, data: result });
+        callback({ success: true, data: { roomCode, status: room.status } });
 
-        // Notify both players that opponent joined
+        // Notify host that opponent joined
         socket.to(roomCode).emit('opponent_joined', {
           opponentId: socket.userId,
-          opponentName: socket.user.displayName || 'Player 2',
-          room: result
+          opponentName: socket.user.displayName || 'Player 2'
         });
 
         // If room is full, automatically start the game
-        if (result.status === 'ready_to_start') {
+        if (room.opponent_id) {
           io.to(roomCode).emit('game_ready', {
             message: 'Both players joined! Game starting...',
             countdown: 3
@@ -107,7 +102,7 @@ export const initializeSocketServer = (httpServer) => {
           }, 1000);
         }
       } catch (error) {
-        console.error('Join challenge error:', error);
+        console.error('Join challenge socket error:', error);
         callback({ success: false, error: error.message });
       }
     });

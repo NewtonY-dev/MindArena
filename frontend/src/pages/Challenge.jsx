@@ -185,8 +185,9 @@ const Challenge = () => {
         setIsHost(true);
         setGameState('waiting');
         
-        // Join socket room
+        // Join socket room (use room code from REST API)
         challengeSocket.createChallenge({
+          roomCode: result.data.roomCode,
           subject: selectedSubject,
           difficulty,
           questionCount,
