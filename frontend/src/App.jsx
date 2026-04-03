@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Practice from './pages/Practice';
 import Contest from './pages/Contest';
 import Leaderboard from './pages/Leaderboard';
+import Challenge from './pages/Challenge';
 
 function ProtectedRoute({ children }) {
   const { user, loading, needsProfileSetup } = useAuth();
@@ -108,6 +109,11 @@ function AppRoutes() {
       <Route path="/leaderboard" element={
         <ProtectedRoute>
           <Leaderboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/challenge" element={
+        <ProtectedRoute>
+          <Challenge />
         </ProtectedRoute>
       } />
       <Route path="/" element={<Navigate to="/dashboard" />} />

@@ -2,6 +2,7 @@ import config from './src/config/index.js';
 import db from './src/config/db.js';
 import setupDatabase from './src/config/initDatabase.js';
 import app from './src/app.js';
+import { initializeSocketServer } from './src/config/socketServer.js';
 
 const PORT = config.PORT;
 
@@ -40,14 +41,21 @@ const startServer = async () => {
       console.log(`🌍 Environment: ${config.NODE_ENV}`);
       console.log(`📚 API Documentation: http://localhost:${PORT}${config.API_PREFIX}/docs`);
       console.log(`🏥 Health Check: http://localhost:${PORT}/`);
+      console.log(`⚡ WebSocket Server: ws://localhost:${PORT}`);
       console.log('\n📋 Available Endpoints:');
       console.log(`   POST ${config.API_PREFIX}/auth/register - Register new user`);
       console.log(`   POST ${config.API_PREFIX}/auth/login - Login user`);
       console.log(`   GET  ${config.API_PREFIX}/users/me - Get current user profile`);
       console.log(`   GET  ${config.API_PREFIX}/practice/questions - Get practice questions`);
       console.log(`   POST ${config.API_PREFIX}/practice/submit - Submit answer`);
+      console.log(`   POST ${config.API_PREFIX}/challenges/create - Create 1v1 challenge`);
+      console.log(`   POST ${config.API_PREFIX}/challenges/join - Join challenge`);
       console.log('\n🔧 Note: Some endpoints may not work without database connection');
     });
+
+    // Initialize Socket.io server
+    initializeSocketServer(server);
+    console.log('✅ WebSocket server initialized for 1v1 challenges');
 
     // Graceful shutdown
     const gracefulShutdown = (signal) => {

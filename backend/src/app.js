@@ -18,6 +18,7 @@ import subjectRoutes from "./routes/subjectRoutes.js";
 import questionRoutes from "./routes/questionRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import contestRoutes from "./routes/contestRoutes.js";
+import challengeRoutes from "./routes/challengeRoutes.js";
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.get('/', (req, res) => {
       subjects: '/api/subjects',
       questions: '/api/questions',
       contests: '/api/contests',
+      challenges: '/api/challenges',
       admin: '/api/admin'
     }
   });
@@ -81,6 +83,7 @@ app.use(`${config.API_PREFIX}/grade-levels`, gradeLevelRoutes);
 app.use(`${config.API_PREFIX}/subjects`, subjectRoutes);
 app.use(`${config.API_PREFIX}/questions`, questionRoutes);
 app.use(`${config.API_PREFIX}/contests`, contestRoutes);
+app.use(`${config.API_PREFIX}/challenges`, challengeRoutes);
 app.use(`${config.API_PREFIX}/admin`, adminRoutes);
 
 // API Documentation endpoint
@@ -129,6 +132,16 @@ app.get(`${config.API_PREFIX}/docs`, (req, res) => {
         'POST /:id/start': 'Start a contest',
         'POST /submit': 'Submit contest answer',
         'GET /:id/leaderboard': 'Get contest leaderboard'
+      },
+      challenges: {
+        'POST /create': 'Create 1v1 challenge room',
+        'POST /join': 'Join challenge with room code',
+        'GET /validate/:roomCode': 'Validate room code',
+        'GET /room/:roomCode': 'Get room info',
+        'GET /active': 'Get active challenges',
+        'GET /history': 'Get challenge history',
+        'POST /leave/:roomCode': 'Leave challenge',
+        'GET /leaderboard': 'Get challenge leaderboard'
       },
       admin: {
         'GET /users/top': 'Get top users',

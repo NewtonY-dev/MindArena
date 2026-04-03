@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { Brain, Home, BookOpen, Flag, Swords, Trophy, Star, LogOut, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Layout.css';
 
@@ -44,7 +45,7 @@ export default function Layout({ children }) {
           {/* Logo Section */}
           <div className="logo-section">
             <Link to="/dashboard">
-              <span className="logo-icon">🧠</span>
+              <Brain size={32} color="white" />
             </Link>
             <Link to="/dashboard">
               <span className="logo-text">Mind<span>Arena</span></span>
@@ -57,28 +58,35 @@ export default function Layout({ children }) {
               to="/dashboard" 
               className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
             >
-              <span className="nav-icon">🏠</span>
+              <Home size={20} color="white" />
               <span className="nav-label">Dashboard</span>
             </Link>
             <Link 
               to="/practice" 
               className={`nav-item ${isActive('/practice') ? 'active' : ''}`}
             >
-              <span className="nav-icon">📚</span>
+              <BookOpen size={20} color="white" />
               <span className="nav-label">Practice</span>
             </Link>
             <Link 
               to="/contest" 
               className={`nav-item ${isActive('/contest') ? 'active' : ''}`}
             >
-              <span className="nav-icon">🏁</span>
+              <Flag size={20} color="white" />
               <span className="nav-label">Contest</span>
+            </Link>
+            <Link 
+              to="/challenge" 
+              className={`nav-item ${isActive('/challenge') ? 'active' : ''}`}
+            >
+              <Swords size={20} color="white" />
+              <span className="nav-label">1v1 Challenge</span>
             </Link>
             <Link 
               to="/leaderboard" 
               className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}
             >
-              <span className="nav-icon">🏆</span>
+              <Trophy size={20} color="white" />
               <span className="nav-label">Leaderboard</span>
             </Link>
           </nav>
@@ -86,11 +94,11 @@ export default function Layout({ children }) {
           {/* User Section */}
           <div className="user-section">
             <div className="points-badge">
-              <span className="points-icon">⭐</span>
+              <Star size={16} color="white" />
               <span className="points-value">{user?.points || 0}</span>
             </div>
             <button className="logout-btn" onClick={handleLogout}>
-              <span className="logout-icon">🚪</span>
+              <LogOut size={20} color="white" />
               <span className="nav-label">Logout</span>
             </button>
           </div>
@@ -101,7 +109,7 @@ export default function Layout({ children }) {
       <nav className={`mobile-sidebar ${sidebarOpen ? 'open' : ''}`}>
         {/* Sidebar Logo */}
         <div className="sidebar-logo">
-          <span className="sidebar-logo-icon">🧠</span>
+          <Brain size={32} color="white" />
           <span className="sidebar-logo-text">Mind<span>Arena</span></span>
         </div>
 
@@ -112,7 +120,7 @@ export default function Layout({ children }) {
             className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
             onClick={closeSidebar}
           >
-            <span className="nav-icon">🏠</span>
+            <Home size={20} color="white" />
             <span className="nav-label">Dashboard</span>
           </Link>
           <Link 
@@ -120,7 +128,7 @@ export default function Layout({ children }) {
             className={`nav-item ${isActive('/practice') ? 'active' : ''}`}
             onClick={closeSidebar}
           >
-            <span className="nav-icon">📚</span>
+            <BookOpen size={20} color="white" />
             <span className="nav-label">Practice</span>
           </Link>
           <Link 
@@ -128,15 +136,23 @@ export default function Layout({ children }) {
             className={`nav-item ${isActive('/contest') ? 'active' : ''}`}
             onClick={closeSidebar}
           >
-            <span className="nav-icon">🏁</span>
+            <Flag size={20} color="white" />
             <span className="nav-label">Contest</span>
+          </Link>
+          <Link 
+            to="/challenge" 
+            className={`nav-item ${isActive('/challenge') ? 'active' : ''}`}
+            onClick={closeSidebar}
+          >
+            <Swords size={20} color="white" />
+            <span className="nav-label">1v1 Challenge</span>
           </Link>
           <Link 
             to="/leaderboard" 
             className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}
             onClick={closeSidebar}
           >
-            <span className="nav-icon">🏆</span>
+            <Trophy size={20} color="white" />
             <span className="nav-label">Leaderboard</span>
           </Link>
         </div>
@@ -147,18 +163,18 @@ export default function Layout({ children }) {
         <div className="user-section">
           <div className="user-card">
             <div className="user-info">
-              <div className="user-avatar">👤</div>
+              <User size={24} color="white" />
               <div>
                 <div className="user-name">{user?.name || 'User'}</div>
                 <div className="user-email">{user?.email || 'user@example.com'}</div>
               </div>
             </div>
             <div className="points-badge">
-              <span className="points-icon">⭐</span>
+              <Star size={16} color="white" />
               <span className="points-value">{user?.points || 0} Points</span>
             </div>
             <button className="logout-btn" onClick={handleLogout}>
-              <span className="logout-icon">🚪</span>
+              <LogOut size={20} color="white" />
               <span className="nav-label">Logout</span>
             </button>
           </div>
