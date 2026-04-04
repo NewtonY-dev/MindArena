@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import './AdminManageQuestions.css';
+import { FiEdit2, FiTrash2, FiX, FiFilter, FiPlus, FiFileText, FiCheck, FiAlertCircle, FiHelpCircle, FiCheckCircle, FiBarChart2, FiZap, FiBookOpen, FiSave } from 'react-icons/fi';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -18,6 +19,7 @@ export default function AdminManageQuestions() {
   const [subjects, setSubjects] = useState([]);
   const [selectedGrade, setSelectedGrade] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('');
 
   const [formData, setFormData] = useState({
     content: '',
@@ -45,7 +47,7 @@ export default function AdminManageQuestions() {
   // Filter questions when filters change
   useEffect(() => {
     filterQuestions();
-  }, [selectedGrade, selectedSubject, questions]);
+  }, [selectedGrade, selectedSubject, selectedDifficulty, questions]);
 
   const loadQuestions = async () => {
     try {
@@ -90,12 +92,17 @@ export default function AdminManageQuestions() {
       filtered = filtered.filter(q => q.subject_id === parseInt(selectedSubject));
     }
 
+    if (selectedDifficulty) {
+      filtered = filtered.filter(q => q.difficulty_level === selectedDifficulty);
+    }
+
     setFilteredQuestions(filtered);
   };
 
   const clearFilters = () => {
     setSelectedGrade('');
     setSelectedSubject('');
+    setSelectedDifficulty('');
   };
 
   const handleEdit = (question) => {
@@ -279,6 +286,19 @@ export default function AdminManageQuestions() {
             </select>
           </div>
 
+          <div className="filter-field">
+            <label>Difficulty</label>
+            <select
+              value={selectedDifficulty}
+              onChange={(e) => setSelectedDifficulty(e.target.value)}
+            >
+              <option value="">All Difficulties</option>
+              <option value="easy">● Easy</option>
+              <option value="medium">● Medium</option>
+              <option value="hard">● Hard</option>
+            </select>
+          </div>
+
           <button className="clear-filters-btn" onClick={clearFilters}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -394,10 +414,7 @@ export default function AdminManageQuestions() {
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-icon edit-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
+                <FiEdit2 size={28} />
               </div>
               <h2>Edit Question</h2>
               <p className="modal-subtitle">Update question details</p>
@@ -406,7 +423,7 @@ export default function AdminManageQuestions() {
             <form onSubmit={handleUpdate}>
               <div className="form-section">
                 <label className="form-label">
-                  <span className="label-icon">❓</span>
+                  <FiHelpCircle className="label-icon" />
                   Question Text
                 </label>
                 <textarea
@@ -422,7 +439,7 @@ export default function AdminManageQuestions() {
               <div className="form-row">
                 <div className="form-section half">
                   <label className="form-label">
-                    <span className="label-icon">✅</span>
+                    <FiCheckCircle className="label-icon" />
                     Correct Answer
                   </label>
                   <input
@@ -436,7 +453,7 @@ export default function AdminManageQuestions() {
                 </div>
                 <div className="form-section half">
                   <label className="form-label">
-                    <span className="label-icon">📊</span>
+                    <FiBarChart2 className="label-icon" />
                     Difficulty
                   </label>
                   <select
@@ -444,16 +461,16 @@ export default function AdminManageQuestions() {
                     value={formData.difficultyLevel}
                     onChange={(e) => setFormData({...formData, difficultyLevel: e.target.value})}
                   >
-                    <option value="easy">🟢 Easy</option>
-                    <option value="medium">🟡 Medium</option>
-                    <option value="hard">🔴 Hard</option>
+                    <option value="easy">● Easy</option>
+                    <option value="medium">● Medium</option>
+                    <option value="hard">● Hard</option>
                   </select>
                 </div>
               </div>
 
               <div className="form-section">
                 <label className="form-label">
-                  <span className="label-icon">💡</span>
+                  <FiZap className="label-icon" />
                   Hint <span className="optional">(Optional)</span>
                 </label>
                 <input
@@ -467,7 +484,7 @@ export default function AdminManageQuestions() {
 
               <div className="form-section">
                 <label className="form-label">
-                  <span className="label-icon">📖</span>
+                  <FiBookOpen className="label-icon" />
                   Explanation <span className="optional">(Optional)</span>
                 </label>
                 <textarea
@@ -484,11 +501,7 @@ export default function AdminManageQuestions() {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: '8px'}}>
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
-                  </svg>
+                  <FiSave style={{marginRight: '8px'}} />
                   Save Changes
                 </button>
               </div>
