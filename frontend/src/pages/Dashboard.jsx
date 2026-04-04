@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { FiBook, FiAward, FiTrendingUp, FiTarget, FiZap, FiBarChart2 } from 'react-icons/fi';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -44,144 +45,167 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page">
-      {/* Hero Header */}
-      <div className="dashboard-hero">
-        <div className="hero-content">
-          <div className="hero-welcome">
-            <h1>
-              Welcome back, {user?.displayName || 'Student'}!
-              <span className="wave-hand">👋</span>
-            </h1>
-            <p>{getMotivationalMessage()}</p>
+      {/* Modern Header */}
+      <div className="dashboard-header">
+        <div className="header-icon-large">
+          <FiBook size={40} />
+        </div>
+        <h1>Welcome back, {user?.displayName || 'Student'}!</h1>
+        <p>{getMotivationalMessage()}</p>
+        
+        {/* Quick Stats Row */}
+        <div className="header-stats-row">
+          <div className="header-stat-pill">
+            <FiAward size={20} />
+            <span className="header-stat-value">{stats.points}</span>
+            <span className="header-stat-label">Points</span>
           </div>
-          <div className="hero-stats-row">
-            <div className="hero-stat-pill">
-              <span className="hero-stat-pill-icon">⭐</span>
-              <span className="hero-stat-pill-value">{stats.points}</span>
-            </div>
-            <div className="hero-stat-pill">
-              <span className="hero-stat-pill-icon">🎯</span>
-              <span className="hero-stat-pill-value">{stats.accuracy.toFixed(1)}%</span>
-            </div>
-            <div className="hero-stat-pill">
-              <span className="hero-stat-pill-icon">📝</span>
-              <span className="hero-stat-pill-value">{stats.totalAttempted}</span>
-            </div>
+          <div className="header-stat-pill">
+            <FiTarget size={20} />
+            <span className="header-stat-value">{stats.accuracy.toFixed(1)}%</span>
+            <span className="header-stat-label">Accuracy</span>
+          </div>
+          <div className="header-stat-pill">
+            <FiBarChart2 size={20} />
+            <span className="header-stat-value">{stats.totalAttempted}</span>
+            <span className="header-stat-label">Questions</span>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="quick-actions">
-        <Link to="/practice" className="action-btn">
-          <span className="action-btn-icon">📚</span>
-          <div className="action-btn-content">
-            <h3>Practice Questions</h3>
-            <p>Test your knowledge →</p>
+      <div className="dashboard-actions-grid">
+        <Link to="/practice" className="dashboard-action-card primary">
+          <div className="action-icon-wrapper">
+            <FiBook size={32} />
           </div>
-          <span className="action-btn-arrow">➜</span>
+          <div className="action-content">
+            <h3>Practice Questions</h3>
+            <p>Test your knowledge and earn points</p>
+          </div>
+          <div className="action-arrow-wrapper">
+            <FiTrendingUp size={20} />
+          </div>
         </Link>
 
-        <Link to="/leaderboard" className="action-btn">
-          <span className="action-btn-icon">🏆</span>
-          <div className="action-btn-content">
-            <h3>Leaderboard</h3>
-            <p>Check your rank →</p>
+        <Link to="/leaderboard" className="dashboard-action-card secondary">
+          <div className="action-icon-wrapper">
+            <FiAward size={32} />
           </div>
-          <span className="action-btn-arrow">➜</span>
+          <div className="action-content">
+            <h3>Leaderboard</h3>
+            <p>Check your rank and compete with others</p>
+          </div>
+          <div className="action-arrow-wrapper">
+            <FiTrendingUp size={20} />
+          </div>
         </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="stats-section">
-        <h2 className="section-title">Your Progress</h2>
-        <div className="stats-grid">
+      {/* Stats Section */}
+      <div className="dashboard-section">
+        <h2 className="section-title">
+          <FiBarChart2 className="section-icon" />
+          Your Progress
+        </h2>
+        <div className="dashboard-stats-grid">
           {/* Points Card */}
-          <div className="stat-card">
-            <div className="stat-card-header">
-              <span className="stat-card-icon">⭐</span>
-              <span className="stat-card-badge positive">+Points</span>
+          <div className="dashboard-stat-card">
+            <div className="dashboard-stat-header">
+              <div className="dashboard-stat-icon points-icon">
+                <FiAward size={24} />
+              </div>
+              <span className="dashboard-stat-badge">Points</span>
             </div>
-            <div className="stat-card-value">{stats.points}</div>
-            <div className="stat-card-label">Total Points</div>
-            <div className="stat-progress-bar">
+            <div className="dashboard-stat-value">{stats.points}</div>
+            <div className="dashboard-stat-label">Total Points Earned</div>
+            <div className="dashboard-progress-bar">
               <div 
-                className="stat-progress-fill" 
+                className="dashboard-progress-fill points-fill" 
                 style={{ width: `${Math.min((stats.points / 100) * 100, 100)}%` }}
               />
             </div>
-            <div className="stat-card-footer">
-              <span className="stat-card-footer-text">Keep earning more points!</span>
+            <div className="dashboard-stat-footer">
+              Keep earning more points!
             </div>
           </div>
 
           {/* Accuracy Card */}
-          <div className="stat-card">
-            <div className="stat-card-header">
-              <span className="stat-card-icon">🎯</span>
-              <span className="stat-card-badge neutral">Accuracy</span>
+          <div className="dashboard-stat-card">
+            <div className="dashboard-stat-header">
+              <div className="dashboard-stat-icon accuracy-icon">
+                <FiTarget size={24} />
+              </div>
+              <span className="dashboard-stat-badge">Accuracy</span>
             </div>
-            <div className="stat-card-value">{stats.accuracy.toFixed(1)}%</div>
-            <div className="stat-card-label">Accuracy Rate</div>
-            <div className="stat-progress-bar">
+            <div className="dashboard-stat-value">{stats.accuracy.toFixed(1)}%</div>
+            <div className="dashboard-stat-label">Answer Accuracy</div>
+            <div className="dashboard-progress-bar">
               <div 
-                className="stat-progress-fill" 
+                className="dashboard-progress-fill accuracy-fill" 
                 style={{ width: `${stats.accuracy}%` }}
               />
             </div>
-            <div className="stat-card-footer">
-              <span className="stat-card-footer-text">
-                {stats.accuracy >= 80 ? 'Excellent performance!' : 'Keep practicing!'}
-              </span>
+            <div className="dashboard-stat-footer">
+              {stats.accuracy >= 80 ? 'Excellent performance!' : 'Keep practicing!'}
             </div>
           </div>
 
           {/* Questions Card */}
-          <div className="stat-card">
-            <div className="stat-card-header">
-              <span className="stat-card-icon">📝</span>
-              <span className="stat-card-badge neutral">Questions</span>
+          <div className="dashboard-stat-card">
+            <div className="dashboard-stat-header">
+              <div className="dashboard-stat-icon questions-icon">
+                <FiBook size={24} />
+              </div>
+              <span className="dashboard-stat-badge">Questions</span>
             </div>
-            <div className="stat-card-value">{stats.totalAttempted}</div>
-            <div className="stat-card-label">Questions Attempted</div>
-            <div className="stat-progress-bar">
+            <div className="dashboard-stat-value">{stats.totalAttempted}</div>
+            <div className="dashboard-stat-label">Questions Attempted</div>
+            <div className="dashboard-progress-bar">
               <div 
-                className="stat-progress-fill" 
+                className="dashboard-progress-fill questions-fill" 
                 style={{ width: `${Math.min((stats.totalAttempted / 50) * 100, 100)}%` }}
               />
             </div>
-            <div className="stat-card-footer">
-              <span className="stat-card-footer-text">
-                {stats.totalAttempted >= 50 ? '🏆 Milestone reached!' : 
-                 stats.totalAttempted >= 25 ? '⭐ Almost there!' : 
-                 stats.totalAttempted >= 10 ? '🚀 Keep going!' : '🌟 Just started!'}
-              </span>
+            <div className="dashboard-stat-footer">
+              {stats.totalAttempted >= 50 ? 'Milestone reached!' : 
+               stats.totalAttempted >= 25 ? 'Almost there!' : 
+               stats.totalAttempted >= 10 ? 'Keep going!' : 'Just started!'}
             </div>
           </div>
         </div>
       </div>
 
       {/* Tips Section */}
-      <div className="tips-section">
-        <h3>💡 Quick Tips</h3>
+      <div className="dashboard-section">
+        <h2 className="section-title">
+          <FiZap className="section-icon" />
+          Quick Tips
+        </h2>
         <div className="tips-grid">
           <div className="tip-card">
-            <span className="tip-card-icon">🎯</span>
-            <div className="tip-card-content">
+            <div className="tip-icon-wrapper">
+              <FiTarget size={24} />
+            </div>
+            <div className="tip-content">
               <h4>Focus on Accuracy</h4>
               <p>Practice regularly to improve your accuracy score</p>
             </div>
           </div>
           <div className="tip-card">
-            <span className="tip-card-icon">⭐</span>
-            <div className="tip-card-content">
+            <div className="tip-icon-wrapper">
+              <FiAward size={24} />
+            </div>
+            <div className="tip-content">
               <h4>Earn Points</h4>
               <p>Complete questions correctly to earn more points</p>
             </div>
           </div>
           <div className="tip-card">
-            <span className="tip-card-icon">🏆</span>
-            <div className="tip-card-content">
+            <div className="tip-icon-wrapper">
+              <FiTrendingUp size={24} />
+            </div>
+            <div className="tip-content">
               <h4>Climb Leaderboard</h4>
               <p>Compete with others by earning more points</p>
             </div>

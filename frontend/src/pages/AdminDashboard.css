@@ -1,6 +1,6 @@
 .admin-page {
   padding: 2rem;
-  max-width: 1000px;
+  max-width: 100%;
   margin: 0 auto;
   min-height: 100vh;
 }
@@ -9,6 +9,7 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  width: 100%;
 }
 
 /* Modern Dashboard Header */
@@ -19,6 +20,7 @@
   text-align: center;
   color: white;
   box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+  width: 100%;
 }
 
 .header-icon-large {
@@ -95,7 +97,7 @@
 /* Admin Actions Grid */
 .admin-actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1.5rem;
 }
 
@@ -220,6 +222,12 @@
 }
 
 /* Responsive */
+@media (max-width: 900px) {
+  .admin-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .admin-page {
     padding: 1rem;
@@ -245,10 +253,6 @@
 
   .dashboard-header p {
     font-size: 1rem;
-  }
-
-  .admin-actions-grid {
-    grid-template-columns: 1fr;
   }
 
   .admin-action-card {

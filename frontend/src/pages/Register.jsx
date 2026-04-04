@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight, FiCheckCircle, FiUserPlus } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
@@ -100,39 +101,6 @@ export default function Register() {
       }
       
       .form-group input:focus + .input-icon {
-        color: #667eea;
-        transform: translateY(-50%) scale(1.1);
-      }
-      
-      .input-wrapper {
-        position: relative;
-      }
-      
-      .form-group input {
-        padding-right: 50px;
-      }
-      
-      .auth-success {
-        background: linear-gradient(135deg, #00d2d3 0%, #01a3a4 100%);
-        color: white;
-        padding: 16px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        text-align: center;
-        animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      }
-      
-      @keyframes successPop {
-        0% { transform: scale(0); opacity: 0; }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); opacity: 1; }
-      }
-      
-      .password-strength {
-        margin-top: 8px;
-        height: 4px;
-        background: #e0e0e0;
-        border-radius: 2px;
         overflow: hidden;
       }
       
@@ -268,17 +236,26 @@ export default function Register() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>Join MindArena! 🚀</h1>
+          <div className="auth-icon-wrapper">
+            <FiUserPlus size={32} />
+          </div>
+          <h1>Join MindArena!</h1>
           <p>Create an account to start your learning adventure</p>
         </div>
 
         {success && (
           <div className="auth-success">
-            🎉 Account created! Redirecting to setup...
+            <FiCheckCircle size={20} />
+            <span>Account created! Redirecting to setup...</span>
           </div>
         )}
 
-        {error && <div className="auth-error">{error}</div>}
+        {error && (
+          <div className="auth-error">
+            <span className="error-icon">⚠️</span>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className={`form-group ${emailFocused ? 'focused' : ''}`}>
@@ -295,7 +272,7 @@ export default function Register() {
                 required
                 autoComplete="email"
               />
-              <span className="input-icon">📧</span>
+              <span className="input-icon-static"><FiMail size={20} /></span>
             </div>
           </div>
 
@@ -319,7 +296,7 @@ export default function Register() {
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex="-1"
               >
-                {showPassword ? '🙈' : '👁️'}
+                {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
               </button>
             </div>
             {password && (
@@ -376,7 +353,14 @@ export default function Register() {
             className={`auth-button ${loading ? 'loading' : ''}`}
             disabled={!isFormValid}
           >
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? (
+              'Creating account...'
+            ) : (
+              <>
+                <span>Create Account</span>
+                <FiArrowRight size={18} />
+              </>
+            )}
           </button>
         </form>
 

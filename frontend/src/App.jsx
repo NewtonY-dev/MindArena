@@ -36,6 +36,28 @@ function ProtectedRoute({ children }) {
   return <Layout>{children}</Layout>;
 }
 
+function AdminProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (user.role !== 'admin') {
+    return <Navigate to="/dashboard" />;
+  }
+
+  return <Layout>{children}</Layout>;
+}
+
 function ProfileSetupRoute({ children }) {
   const { user, loading, needsProfileSetup } = useAuth();
 
@@ -125,19 +147,19 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/admin" element={
-        <ProtectedRoute>
+        <AdminProtectedRoute>
           <AdminDashboard />
-        </ProtectedRoute>
+        </AdminProtectedRoute>
       } />
       <Route path="/admin/questions/create" element={
-        <ProtectedRoute>
+        <AdminProtectedRoute>
           <AdminQuestionCreate />
-        </ProtectedRoute>
+        </AdminProtectedRoute>
       } />
       <Route path="/admin/questions" element={
-        <ProtectedRoute>
+        <AdminProtectedRoute>
           <AdminManageQuestions />
-        </ProtectedRoute>
+        </AdminProtectedRoute>
       } />
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route path="*" element={<Navigate to="/dashboard" />} />

@@ -1,16 +1,8 @@
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { QuestionForm } from '../components/admin';
 import { FiPlus } from 'react-icons/fi';
 import './AdminQuestionCreate.css';
 
 export default function AdminQuestionCreate() {
-  const { user } = useAuth();
-
-  if (user?.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return (
     <div className="admin-page">
       <div className="admin-container">

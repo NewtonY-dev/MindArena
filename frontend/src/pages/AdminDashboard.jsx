@@ -1,15 +1,8 @@
-import { Link, Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 import { FiPlusCircle, FiList, FiArrowRight, FiBookOpen, FiLayers } from 'react-icons/fi';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
-
-  if (user?.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return (
     <div className="admin-page">
       <div className="admin-container">

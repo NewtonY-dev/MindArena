@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { FiBook, FiFilter, FiZap, FiBarChart2, FiCheckCircle, FiXCircle, FiSun, FiArrowRight, FiArrowLeft, FiRotateCcw, FiLayers } from 'react-icons/fi';
 import './Practice.css';
 
 export default function Practice() {
@@ -114,18 +115,105 @@ export default function Practice() {
   if (questions.length === 0) {
     return (
       <div className="practice-page">
-        <div className="practice-hero">
-          <div className="hero-content">
-            <div className="hero-title-section">
-              <h1>Practice</h1>
-              <p>Master your skills with interactive learning</p>
-            </div>
+        <div className="practice-header">
+          <div className="header-icon-large">
+            <FiBook size={40} />
           </div>
+          <h1>Practice</h1>
+          <p>Master your skills with interactive learning</p>
         </div>
 
         <div className="filters-section">
           <div className="filter-card">
-            <span className="filter-icon">🎯</span>
+            <div className="filter-icon-wrapper">
+              <FiFilter size={20} />
+            </div>
+            <div className="filter-content">
+              <span className="filter-label">Subject</span>
+              <select 
+                className="filter-select" 
+                value={selectedSubject} 
+                onChange={(e) => setSelectedSubject(e.target.value)}
+              >
+                <option value="">All Subjects</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div className="filter-card">
+            <div className="filter-icon-wrapper">
+              <FiZap size={20} />
+            </div>
+            <div className="filter-content">
+              <span className="filter-label">Difficulty</span>
+              <select 
+                className="filter-select" 
+                value={selectedDifficulty} 
+                onChange={(e) => setSelectedDifficulty(e.target.value)}
+              >
+                <option value="">All Levels</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="no-questions-container">
+          <div className="no-questions-icon">
+            <FiBook size={64} />
+          </div>
+          <h2>No Questions Found</h2>
+          <p>There are no practice questions available for your selected criteria.</p>
+          <p>Please select a different subject or check back later.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="practice-page">
+      {/* Modern Header */}
+      <div className="practice-header">
+        <div className="header-icon-large">
+          <FiBook size={40} />
+        </div>
+        <h1>Practice</h1>
+        <p>Master your skills with interactive learning</p>
+        
+        {/* Header Stats Row */}
+        <div className="header-stats-row">
+          <div className="header-stat-pill">
+            <FiLayers size={20} />
+            <span className="header-stat-value">{questions.length}</span>
+            <span className="header-stat-label">Total</span>
+          </div>
+          <div className="header-stat-pill">
+            <FiBarChart2 size={20} />
+            <span className="header-stat-value">{currentIndex + 1}</span>
+            <span className="header-stat-label">Current</span>
+          </div>
+          <div className="header-stat-pill">
+            <FiCheckCircle size={20} />
+            <span className="header-stat-value">{Math.round(((currentIndex + 1) / questions.length) * 100)}%</span>
+            <span className="header-stat-label">Progress</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="filters-section">
+        <div className="filter-card">
+          <div className="filter-icon-wrapper">
+            <FiFilter size={20} />
+          </div>
+          <div className="filter-content">
             <span className="filter-label">Subject</span>
             <select 
               className="filter-select" 
@@ -140,9 +228,13 @@ export default function Practice() {
               ))}
             </select>
           </div>
-          
-          <div className="filter-card">
-            <span className="filter-icon">⚡</span>
+        </div>
+        
+        <div className="filter-card">
+          <div className="filter-icon-wrapper">
+            <FiZap size={20} />
+          </div>
+          <div className="filter-content">
             <span className="filter-label">Difficulty</span>
             <select 
               className="filter-select" 
@@ -155,85 +247,6 @@ export default function Practice() {
               <option value="hard">Hard</option>
             </select>
           </div>
-        </div>
-
-        <div className="no-questions-container">
-          <div className="no-questions-icon">📚</div>
-          <h2>No Questions Found</h2>
-          <p>There are no practice questions available for your selected criteria.</p>
-          <p>Please select a different subject or check back later.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="practice-page">
-      {/* Hero Header */}
-      <div className="practice-hero">
-        <div className="hero-content">
-          <div className="hero-title-section">
-            <h1>Practice</h1>
-            <p>Master your skills with interactive learning</p>
-          </div>
-          <div className="hero-stats">
-            <div className="hero-stat-card">
-              <span className="hero-stat-icon">📊</span>
-              <div className="hero-stat-info">
-                <span className="hero-stat-number">{questions.length}</span>
-                <span className="hero-stat-label">Total Questions</span>
-              </div>
-            </div>
-            <div className="hero-stat-card">
-              <span className="hero-stat-icon">📝</span>
-              <div className="hero-stat-info">
-                <span className="hero-stat-number">{currentIndex + 1}</span>
-                <span className="hero-stat-label">Current</span>
-              </div>
-            </div>
-            <div className="hero-stat-card">
-              <span className="hero-stat-icon">⭐</span>
-              <div className="hero-stat-info">
-                <span className="hero-stat-number">{Math.round(((currentIndex + 1) / questions.length) * 100)}%</span>
-                <span className="hero-stat-label">Progress</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="filters-section">
-        <div className="filter-card">
-          <span className="filter-icon">🎯</span>
-          <span className="filter-label">Subject</span>
-          <select 
-            className="filter-select" 
-            value={selectedSubject} 
-            onChange={(e) => setSelectedSubject(e.target.value)}
-          >
-            <option value="">All Subjects</option>
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="filter-card">
-          <span className="filter-icon">⚡</span>
-          <span className="filter-label">Difficulty</span>
-          <select 
-            className="filter-select" 
-            value={selectedDifficulty} 
-            onChange={(e) => setSelectedDifficulty(e.target.value)}
-          >
-            <option value="">All Levels</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
         </div>
       </div>
 
@@ -269,13 +282,19 @@ export default function Practice() {
           <div className="answer-section">
             {!feedback && currentQuestion.hint && !showHint && (
               <button className="hint-toggle" onClick={() => setShowHint(true)}>
-                💡 Need a hint?
+                <FiSun size={18} />
+                <span>Need a hint?</span>
               </button>
             )}
 
             {showHint && currentQuestion.hint && (
               <div className="hint-content">
-                <strong>Hint:</strong> {currentQuestion.hint}
+                <div className="hint-icon-wrapper">
+                  <FiSun size={20} />
+                </div>
+                <div className="hint-text">
+                  <strong>Hint:</strong> {currentQuestion.hint}
+                </div>
               </div>
             )}
 
@@ -303,7 +322,7 @@ export default function Practice() {
               <div className={`feedback-section`}>
                 <div className={`feedback-card ${feedback.isCorrect ? 'correct' : 'incorrect'}`}>
                   <div className="feedback-icon">
-                    {feedback.isCorrect ? '🎉' : '❌'}
+                    {feedback.isCorrect ? <FiCheckCircle size={64} /> : <FiXCircle size={64} />}
                   </div>
                   <div className="feedback-title">
                     {feedback.isCorrect ? 'Correct!' : 'Incorrect'}
@@ -324,7 +343,8 @@ export default function Practice() {
                     <small>Total: {feedback.totalPoints} points</small>
                   </div>
                   <button className="next-question-btn" onClick={handleNext}>
-                    {currentIndex < questions.length - 1 ? 'Next Question →' : 'Start Over ↺'}
+                    <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Start Over'}</span>
+                    {currentIndex < questions.length - 1 ? <FiArrowRight size={20} /> : <FiRotateCcw size={20} />}
                   </button>
                 </div>
               </div>
@@ -358,14 +378,16 @@ export default function Practice() {
               onClick={handlePrevious}
               disabled={currentIndex === 0}
             >
-              ← Previous
+              <FiArrowLeft size={18} />
+              <span>Previous</span>
             </button>
             <button 
               className="nav-btn" 
               onClick={handleNext}
               disabled={currentIndex === questions.length - 1 && !feedback}
             >
-              Next →
+              <span>Next</span>
+              <FiArrowRight size={18} />
             </button>
           </div>
         </div>

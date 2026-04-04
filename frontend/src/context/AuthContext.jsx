@@ -22,9 +22,16 @@ export function AuthProvider({ children }) {
     try {
       const userData = await api.getCurrentUser();
       setUser(userData);
+      // Check if user needs profile setup (no grade level set and not admin)
+      if (userData.role !== 'admin' && !userData.gradeLevelId) {
+        setNeedsProfileSetup(true);
+      } else {
+        setNeedsProfileSetup(false);
+      }
     } catch (error) {
       localStorage.removeItem('token');
       setUser(null);
+      setNeedsProfileSetup(false);
     } finally {
       setLoading(false);
     }
@@ -34,7 +41,12 @@ export function AuthProvider({ children }) {
     const data = await api.login(email, password);
     localStorage.setItem('token', data.token);
     setUser(data.user);
-    setNeedsProfileSetup(false);
+    // Check if user needs profile setup (no grade level set and not admin)
+    if (data.user.role !== 'admin' && !data.user.gradeLevelId) {
+      setNeedsProfileSetup(true);
+    } else {
+      setNeedsProfileSetup(false);
+    }
     return data;
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { FiFlag, FiClock, FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft, FiZap, FiAward, FiBook, FiCalendar, FiCheckSquare, FiLayers, FiFilter, FiBell, FiBellOff, FiPlay, FiRotateCcw, FiClock as FiTimer } from 'react-icons/fi';
 import './Contest.css';
 
 export default function Contest() {
@@ -264,19 +265,22 @@ export default function Contest() {
   if (contestStarted && activeContest) {
     return (
       <div className="contest-page">
-        {/* Contest Header */}
-        <div className="contest-hero">
-          <div className="hero-content">
-            <div className="hero-title-section">
-              <h1>{activeContest.title}</h1>
-              <p>{activeContest.description}</p>
-            </div>
-            <div className="contest-timer">
-              <span className="timer-icon">⏱️</span>
+        {/* Modern Contest Header */}
+        <div className="contest-header">
+          <div className="header-icon-large">
+            <FiFlag size={40} />
+          </div>
+          <h1>{activeContest.title}</h1>
+          <p>{activeContest.description}</p>
+          
+          {/* Timer */}
+          <div className="header-stats-row">
+            <div className="header-stat-pill timer-pill">
+              <FiTimer size={20} />
               <span className={`timer-value ${timeLeft < 60 ? 'warning' : ''}`}>
                 {formatTime(timeLeft)}
               </span>
-              <span className="timer-label">Remaining</span>
+              <span className="header-stat-label">Remaining</span>
             </div>
           </div>
         </div>
@@ -289,7 +293,7 @@ export default function Contest() {
           </div>
           <div className="progress-bar-container">
             <div 
-              className="progress-bar-fill contest-progress" 
+              className="progress-bar-fill" 
               style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
             ></div>
           </div>
@@ -298,7 +302,9 @@ export default function Contest() {
         {/* Question Container */}
         {questions.length === 0 ? (
           <div className="no-questions-container">
-            <div className="no-questions-icon">🏁</div>
+            <div className="no-questions-icon">
+              <FiLayers size={64} />
+            </div>
             <h2>Loading Questions...</h2>
           </div>
         ) : (
@@ -341,7 +347,7 @@ export default function Contest() {
                   <div className={`feedback-section`}>
                     <div className={`feedback-card ${feedback.isCorrect ? 'correct' : 'incorrect'}`}>
                       <div className="feedback-icon">
-                        {feedback.isCorrect ? '🎉' : '❌'}
+                        {feedback.isCorrect ? <FiCheckCircle size={64} /> : <FiXCircle size={64} />}
                       </div>
                       <div className="feedback-title">
                         {feedback.isCorrect ? 'Correct!' : 'Incorrect'}
@@ -359,7 +365,8 @@ export default function Contest() {
                         <small>Total: {feedback.totalPoints} points</small>
                       </div>
                       <button className="next-question-btn" onClick={handleNext}>
-                        {currentIndex < questions.length - 1 ? 'Next Question →' : 'Finish Contest 🏁'}
+                        <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Contest'}</span>
+                        {currentIndex < questions.length - 1 ? <FiArrowRight size={20} /> : <FiFlag size={20} />}
                       </button>
                     </div>
                   </div>
@@ -392,14 +399,16 @@ export default function Contest() {
                   onClick={handlePrevious}
                   disabled={currentIndex === 0}
                 >
-                  ← Previous
+                  <FiArrowLeft size={18} />
+                  <span>Previous</span>
                 </button>
                 <button 
                   className="nav-btn" 
                   onClick={handleNext}
                   disabled={currentIndex === questions.length - 1 && !feedback}
                 >
-                  Next →
+                  <span>Next</span>
+                  <FiArrowRight size={18} />
                 </button>
               </div>
             </div>
@@ -418,16 +427,47 @@ export default function Contest() {
   // Show available contests
   return (
     <div className="contest-page">
-      <div className="contest-hero">
-        <div className="hero-content">
-          <div className="hero-title-section">
-            <h1>Contests</h1>
-            <p>Compete with others and win exciting prizes!</p>
+      {/* Modern Header */}
+      <div className="contest-header">
+        <div className="header-icon-large">
+          <FiAward size={48} />
+        </div>
+        <h1>Contests</h1>
+        <p className="header-subtitle">Compete with others and win exciting prizes!</p>
+        
+        {/* Stats Row */}
+        <div className="header-stats-row">
+          <div className="header-stat-pill">
+            <FiFlag size={18} />
+            <span className="header-stat-value">
+              {filterByDifficulty(contests.filter(c => c.status === 'available')).length}
+            </span>
+            <span className="header-stat-label">Available</span>
           </div>
-          <div className="contest-filter">
-            <span className="filter-icon">⚡</span>
+          <div className="header-stat-pill">
+            <FiClock size={18} />
+            <span className="header-stat-value">
+              {filterByDifficulty(contests.filter(c => c.status === 'upcoming')).length}
+            </span>
+            <span className="header-stat-label">Upcoming</span>
+          </div>
+          <div className="header-stat-pill">
+            <FiCheckSquare size={18} />
+            <span className="header-stat-value">
+              {filterByDifficulty(contests.filter(c => c.status === 'ended')).length}
+            </span>
+            <span className="header-stat-label">Completed</span>
+          </div>
+        </div>
+
+        {/* Filter */}
+        <div className="header-filter-row">
+          <div className="filter-card-inline">
+            <div className="filter-icon-wrapper">
+              <FiFilter size={18} />
+            </div>
             <select 
-              className="filter-select" 
+              className="filter-select-inline" 
               value={selectedDifficulty} 
               onChange={(e) => setSelectedDifficulty(e.target.value)}
             >
@@ -446,7 +486,7 @@ export default function Contest() {
           className={`contest-tab ${activeTab === 'available' ? 'active' : ''}`}
           onClick={() => setActiveTab('available')}
         >
-          <span className="tab-icon">🏁</span>
+          <FiFlag size={20} />
           <span className="tab-label">Available</span>
           <span className="tab-count">
             {filterByDifficulty(contests.filter(c => c.status === 'available')).length}
@@ -456,7 +496,7 @@ export default function Contest() {
           className={`contest-tab ${activeTab === 'upcoming' ? 'active' : ''}`}
           onClick={() => setActiveTab('upcoming')}
         >
-          <span className="tab-icon">⏳</span>
+          <FiClock size={20} />
           <span className="tab-label">Coming Soon</span>
           <span className="tab-count">
             {filterByDifficulty(contests.filter(c => c.status === 'upcoming')).length}
@@ -466,7 +506,7 @@ export default function Contest() {
           className={`contest-tab ${activeTab === 'ended' ? 'active' : ''}`}
           onClick={() => setActiveTab('ended')}
         >
-          <span className="tab-icon">✅</span>
+          <FiCheckSquare size={20} />
           <span className="tab-label">Past</span>
           <span className="tab-count">
             {filterByDifficulty(contests.filter(c => c.status === 'ended')).length}
@@ -481,8 +521,10 @@ export default function Contest() {
             <div className="contests-grid">
               {filterByDifficulty(contests.filter(c => c.status === 'available')).map((contest) => (
                 <div key={contest.id} className="contest-card">
-                  <div className="contest-header">
-                    <span className="contest-icon">🏁</span>
+                  <div className="contest-card-header">
+                    <div className="contest-icon-wrapper">
+                      <FiFlag size={28} />
+                    </div>
                     <span className={`difficulty-tag ${contest.difficulty}`}>
                       {contest.difficulty}
                     </span>
@@ -491,19 +533,19 @@ export default function Contest() {
                   <p className="contest-description">{contest.description}</p>
                   <div className="contest-details">
                     <div className="contest-detail">
-                      <span className="detail-icon">📚</span>
+                      <FiBook size={16} />
                       <span>{contest.subject}</span>
                     </div>
                     <div className="contest-detail">
-                      <span className="detail-icon">⏱️</span>
+                      <FiClock size={16} />
                       <span>{contest.duration} min</span>
                     </div>
                     <div className="contest-detail">
-                      <span className="detail-icon">❓</span>
+                      <FiLayers size={16} />
                       <span>{contest.questionCount} questions</span>
                     </div>
                     <div className="contest-detail prize">
-                      <span className="detail-icon">🏆</span>
+                      <FiAward size={16} />
                       <span>{contest.prize}</span>
                     </div>
                   </div>
@@ -521,14 +563,17 @@ export default function Contest() {
                     className="start-contest-btn"
                     onClick={() => startContest(contest)}
                   >
-                    Start Contest 🚀
+                    <span>Start Contest</span>
+                    <FiPlay size={18} />
                   </button>
                 </div>
               ))}
             </div>
           ) : (
             <div className="no-contests-container">
-              <div className="no-contests-icon">🏁</div>
+              <div className="no-contests-icon">
+                <FiFlag size={64} />
+              </div>
               <h2>No Available Contests</h2>
               <p>Check the upcoming contests!</p>
             </div>
@@ -542,27 +587,29 @@ export default function Contest() {
             <div className="contests-grid">
               {filterByDifficulty(contests.filter(c => c.status === 'upcoming')).map((contest) => (
                 <div key={contest.id} className="contest-card upcoming">
-                  <div className="contest-header">
-                    <span className="contest-icon">⏳</span>
+                  <div className="contest-card-header">
+                    <div className="contest-icon-wrapper">
+                      <FiClock size={28} />
+                    </div>
                     <span className={`status-badge upcoming`}>Upcoming</span>
                   </div>
                   <h3 className="contest-title">{contest.title}</h3>
                   <p className="contest-description">{contest.description}</p>
                   <div className="contest-details">
                     <div className="contest-detail">
-                      <span className="detail-icon">📚</span>
+                      <FiBook size={16} />
                       <span>{contest.subject}</span>
                     </div>
                     <div className="contest-detail">
-                      <span className="detail-icon">⏱️</span>
+                      <FiClock size={16} />
                       <span>{contest.duration} min</span>
                     </div>
                     <div className="contest-detail">
-                      <span className="detail-icon">❓</span>
+                      <FiLayers size={16} />
                       <span>{contest.questionCount} questions</span>
                     </div>
                     <div className="contest-detail prize">
-                      <span className="detail-icon">🏆</span>
+                      <FiAward size={16} />
                       <span>{contest.prize}</span>
                     </div>
                   </div>
@@ -582,14 +629,14 @@ export default function Contest() {
                       onClick={() => handleRegisterContest(contest.id)}
                     >
                       <span className="register-btn-icon">
-                        {isRegistered(contest.id) ? '✅' : '🔔'}
+                        {isRegistered(contest.id) ? <FiCheckCircle size={20} /> : <FiBell size={20} />}
                       </span>
                       <span className="register-btn-text">
                         {isRegistered(contest.id) ? 'Registered' : 'Register for Contest'}
                       </span>
                     </button>
                     <div className="stay-tuned">
-                      <span className="stay-tuned-icon">⏰</span>
+                      <FiClock size={16} />
                       <span>
                         {isRegistered(contest.id) 
                           ? "We'll notify you when it starts!" 
@@ -603,7 +650,9 @@ export default function Contest() {
             </div>
           ) : (
             <div className="no-contests-container">
-              <div className="no-contests-icon">⏳</div>
+              <div className="no-contests-icon">
+                <FiClock size={64} />
+              </div>
               <h2>No Upcoming Contests</h2>
               <p>Check back later for new contests!</p>
             </div>
@@ -617,27 +666,29 @@ export default function Contest() {
             <div className="contests-grid">
               {filterByDifficulty(contests.filter(c => c.status === 'ended')).map((contest) => (
                 <div key={contest.id} className="contest-card ended">
-                  <div className="contest-header">
-                    <span className="contest-icon">✅</span>
+                  <div className="contest-card-header">
+                    <div className="contest-icon-wrapper">
+                      <FiCheckSquare size={28} />
+                    </div>
                     <span className={`status-badge ended`}>Ended</span>
                   </div>
                   <h3 className="contest-title">{contest.title}</h3>
                   <p className="contest-description">{contest.description}</p>
                   <div className="contest-details">
                     <div className="contest-detail">
-                      <span className="detail-icon">📚</span>
+                      <FiBook size={16} />
                       <span>{contest.subject}</span>
                     </div>
                     <div className="contest-detail">
-                      <span className="detail-icon">⏱️</span>
+                      <FiClock size={16} />
                       <span>{contest.duration} min</span>
                     </div>
                     <div className="contest-detail">
-                      <span className="detail-icon">❓</span>
+                      <FiLayers size={16} />
                       <span>{contest.questionCount} questions</span>
                     </div>
                     <div className="contest-detail prize">
-                      <span className="detail-icon">🏆</span>
+                      <FiAward size={16} />
                       <span>{contest.prize}</span>
                     </div>
                   </div>
@@ -652,14 +703,17 @@ export default function Contest() {
                     </div>
                   </div>
                   <button className="contest-ended-btn" disabled>
-                    Contest Ended
+                    <FiCheckCircle size={18} />
+                    <span>Contest Ended</span>
                   </button>
                 </div>
               ))}
             </div>
           ) : (
             <div className="no-contests-container">
-              <div className="no-contests-icon">✅</div>
+              <div className="no-contests-icon">
+                <FiCheckSquare size={64} />
+              </div>
               <h2>No Past Contests</h2>
               <p>No contests have ended yet!</p>
             </div>
@@ -669,7 +723,9 @@ export default function Contest() {
 
       {contests.length === 0 && (
         <div className="no-contests-container">
-          <div className="no-contests-icon">🏁</div>
+          <div className="no-contests-icon">
+            <FiAward size={64} />
+          </div>
           <h2>No Contests Available</h2>
           <p>Check back later for upcoming competitions!</p>
         </div>

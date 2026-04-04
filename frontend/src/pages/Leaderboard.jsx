@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import './Leaderboard.css';
@@ -18,7 +19,8 @@ export default function Leaderboard() {
       const data = await api.getLeaderboard();
       setRankings(data.rankings || []);
     } catch (err) {
-      setError('Failed to load leaderboard');
+      console.error('Leaderboard load error:', err);
+      setError(err.message || 'Failed to load leaderboard');
     } finally {
       setLoading(false);
     }
@@ -54,9 +56,25 @@ export default function Leaderboard() {
   }
 
   if (error) {
+    const isGradeLevelError = error.includes('grade level');
     return (
       <div className="leaderboard-page">
-        <div className="error-container">{error}</div>
+        <div className="error-container">
+          {isGradeLevelError ? (
+            <>
+              <div className="no-rankings-icon">⚙️</div>
+              <h2>Profile Setup Required</h2>
+              <p>You need to set up your profile with a grade level to view the leaderboard.</p>
+              <Link to="/profile-setup" className="setup-profile-btn">Set Up Profile</Link>
+            </>
+          ) : (
+            <>
+              <div className="no-rankings-icon">⚠️</div>
+              <h2>Error</h2>
+              <p>{error}</p>
+            </>
+          )}
+        </div>
       </div>
     );
   }
