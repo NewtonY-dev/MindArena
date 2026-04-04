@@ -1,4 +1,4 @@
-import { gradeWithGemini, gradeWithAIGeneratedExpected } from './aiService.js';
+import { gradeWithGemini, gradeWithAIGeneratedExpected, generateExplanation } from './aiService.js';
 import { createAttempt } from '../models/attempt.model.js';
 import { getQuestionById } from '../models/question.model.js';
 import db from '../config/db.js';
@@ -10,13 +10,22 @@ const USE_AI_GENERATED_EXPECTED = process.env.USE_AI_GENERATED_EXPECTED === 'tru
 
 /**
  * Drop problematic triggers that cause MySQL error 1442
- * Uses simple query execution to avoid prepared statement issues
+ * Uses a direct connection with query (text protocol) to avoid prepared statements
  */
 async function dropProblematicTriggers() {
+  let connection = null;
   try {
-    // Use execute instead of query to avoid prepared statement issues
+    // Get a direct connection from the pool
+    connection = await new Promise((resolve, reject) => {
+      db.getConnection((err, conn) => {
+        if (err) reject(err);
+        else resolve(conn);
+      });
+    });
+
+    // Use connection.query() (text protocol) instead of execute() (prepared statements)
     await new Promise((resolve, reject) => {
-      db.execute('DROP TRIGGER IF EXISTS log_attempt_creation', (err) => {
+      connection.query('DROP TRIGGER IF EXISTS log_attempt_creation', (err) => {
         if (err && err.code !== 'ER_SP_DOES_NOT_EXIST') {
           reject(err);
         } else {
@@ -24,8 +33,9 @@ async function dropProblematicTriggers() {
         }
       });
     });
+
     await new Promise((resolve, reject) => {
-      db.execute('DROP TRIGGER IF EXISTS log_contest_registration', (err) => {
+      connection.query('DROP TRIGGER IF EXISTS log_contest_registration', (err) => {
         if (err && err.code !== 'ER_SP_DOES_NOT_EXIST') {
           reject(err);
         } else {
@@ -33,9 +43,15 @@ async function dropProblematicTriggers() {
         }
       });
     });
+
     console.log('✓ Dropped problematic triggers');
   } catch (err) {
     console.log('Note: Could not drop triggers:', err.message);
+  } finally {
+    // Always release the connection back to the pool
+    if (connection) {
+      connection.release();
+    }
   }
 }
 
@@ -333,11 +349,26 @@ export async function gradeAndRecordAnswer({ userId, questionId, userAnswer }) {
     question
   });
 
+  // Generate beginner-friendly explanation for incorrect answers
+  let aiExplanation = null;
+  if (!gradingResult.isCorrect) {
+    try {
+      aiExplanation = await generateExplanation({
+        question: question.content,
+        correctAnswer: question.correct_answer,
+        studentAnswer: userAnswer
+      });
+    } catch (error) {
+      console.error('Failed to generate explanation:', error);
+      aiExplanation = question.explanation || 'Review the correct answer above and try to understand the key concept.';
+    }
+  }
+
   return {
     ...gradingResult,
     correctAnswer: question.correct_answer,
     hint: question.hint,
-    explanation: question.explanation
+    explanation: aiExplanation || question.explanation // Use AI explanation for incorrect, DB explanation for correct
   };
 }
 

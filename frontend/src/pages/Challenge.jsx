@@ -5,8 +5,11 @@ import { challengeApi, challengeSocket } from '../services/challengeService';
 import { api } from '../services/api';
 import './Challenge.css';
 
+import { useAuth } from '../context/AuthContext';
+
 const Challenge = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   // Game states: 'lobby', 'waiting', 'countdown', 'playing', 'results'
   const [gameState, setGameState] = useState('lobby');
@@ -94,8 +97,9 @@ const Challenge = () => {
     });
 
     challengeSocket.onScoreUpdate((data) => {
-      const you = data.scores.find(s => s.userId === challengeSocket.getSocket().userId);
-      const opponent = data.scores.find(s => s.userId !== challengeSocket.getSocket().userId);
+      const currentUserId = user?.id;
+      const you = data.scores.find(s => s.userId === currentUserId);
+      const opponent = data.scores.find(s => s.userId !== currentUserId);
       
       setScores({
         you: you?.score || 0,
@@ -433,7 +437,8 @@ const Challenge = () => {
 
   // Render Results
   const renderResults = () => {
-    const isWinner = gameResult?.winner?.id === challengeSocket.getSocket()?.userId;
+    const currentUserId = user?.id;
+    const isWinner = gameResult?.winner?.id === currentUserId;
     const isTie = !gameResult?.winner;
     
     return (

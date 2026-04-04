@@ -74,6 +74,24 @@ Return ONLY valid JSON in this exact format:
   "reason": string (brief explanation of the score)
 }`;
 
+// Prompt C: Generate beginner-friendly explanation for incorrect answers
+const PROMPT_C_EXPLAIN = `You are a patient, encouraging tutor explaining why an answer is correct to a student who got it wrong.
+
+Your explanation should:
+1. Be simple and beginner-friendly (avoid jargon)
+2. Explain the core concept clearly
+3. Walk through the logical thinking step-by-step
+4. Use relatable examples when helpful
+5. Be encouraging and supportive in tone
+6. Keep it concise (4-5 short paragraphs max)
+
+Format your response as simple paragraphs. Do NOT use bullet points, numbers, or markdown formatting like **bold** or *italic*. Just clear, plain text paragraphs.
+
+Structure:
+- First: Explain what the correct answer means in simple terms
+- Then: Walk through the reasoning/logic behind it
+- Finally: Give a helpful tip or encouragement for next time`;
+
 /**
  * Call Gemini API to grade a student's answer
  * @param {Object} params - Grading parameters
@@ -94,7 +112,7 @@ export async function gradeWithGemini({ question, correctAnswer, rubric = '', us
   }
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     generationConfig: {
       temperature: 0.1,
       maxOutputTokens: 256
@@ -194,7 +212,7 @@ export async function generateExpectedAnswer(question, questionId = null) {
   }
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     generationConfig: {
       temperature: 0.2, // Low temperature for consistency
       maxOutputTokens: 128
@@ -279,7 +297,7 @@ export async function evaluateStudentAnswer({ question, expectedAnswer, studentA
   }
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     generationConfig: {
       temperature: 0.1, // Very low for consistent evaluation
       maxOutputTokens: 256
@@ -431,4 +449,60 @@ function fallbackGrading(storedAnswer, studentAnswer) {
     missingConcepts: [],
     method: 'fallback_similarity'
   };
+}
+
+/**
+ * Generate a beginner-friendly explanation for why an answer is correct
+ * @param {Object} params
+ * @param {string} params.question - The question text
+ * @param {string} params.correctAnswer - The correct answer
+ * @param {string} params.studentAnswer - The student's answer (optional)
+ * @returns {Promise<string>} - Beginner-friendly explanation
+ */
+export async function generateExplanation({ question, correctAnswer, studentAnswer = '' }) {
+  if (!genAI) {
+    return 'AI explanation service is not available at the moment.';
+  }
+
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    generationConfig: {
+      temperature: 0.3, // Slightly higher for more natural, conversational tone
+      maxOutputTokens: 512
+    }
+  });
+
+  const prompt = `${PROMPT_C_EXPLAIN}
+
+Question: ${question}
+
+Correct Answer: ${correctAnswer}
+
+${studentAnswer ? `Student's Answer: ${studentAnswer}` : ''}
+
+Explanation:`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    let explanation = response.text().trim();
+
+    // Clean up the response
+    explanation = explanation
+      .replace(/^explanation:/i, '')
+      .replace(/\*\*/g, '') // Remove bold markers
+      .replace(/\*/g, '')   // Remove italic markers
+      .replace(/^[-•]\s*/gm, '') // Remove bullet points at start of lines
+      .trim();
+
+    // Validate - must not be empty
+    if (!explanation || explanation.length < 10) {
+      return 'The correct answer is the one shown above. Review the key concepts and try again!';
+    }
+
+    return explanation;
+  } catch (error) {
+    console.error('Error generating explanation:', error);
+    return 'The correct answer is shown above. Take a moment to review the concept and try the next question!';
+  }
 }

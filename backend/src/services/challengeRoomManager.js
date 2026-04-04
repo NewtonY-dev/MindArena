@@ -206,14 +206,20 @@ class ChallengeRoomManager {
     }
 
     // Store questions for the room
-    const insertQuestionsSql = `
-      INSERT INTO challenge_questions (room_id, question_id, question_order)
-      VALUES ?
-    `;
     const questionValues = questions.map((q, index) => [
       room.id, q.id, index + 1
     ]);
-    await db.queryAsync(insertQuestionsSql, [questionValues]);
+    
+    // Build placeholder string: (?, ?, ?), (?, ?, ?), ...
+    const placeholders = questionValues.map(() => '(?, ?, ?)').join(', ');
+    const insertQuestionsSql = `
+      INSERT INTO challenge_questions (room_id, question_id, question_order)
+      VALUES ${placeholders}
+    `;
+    
+    // Flatten the values array for the query
+    const flatValues = questionValues.flat();
+    await db.queryAsync(insertQuestionsSql, flatValues);
 
     // Update room status
     await db.queryAsync(
@@ -297,8 +303,9 @@ class ChallengeRoomManager {
     `;
     const scores = await db.queryAsync(scoresSql, [room.id]);
 
-    // Get next question
-    const nextQuestionIndex = scores[0]?.current_question_index || 0;
+    // Find current user's progress (not just highest scorer)
+    const currentUserScore = scores.find(s => s.user_id === userId);
+    const nextQuestionIndex = currentUserScore?.current_question_index || 0;
     const gameComplete = nextQuestionIndex >= room.questions.length;
 
     let nextQuestion = null;

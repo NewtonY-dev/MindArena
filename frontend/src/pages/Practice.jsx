@@ -319,86 +319,38 @@ export default function Practice() {
                 </button>
               </form>
             ) : (
-              <div className={`feedback-section`}>
+              <div className={`feedback-section simplified`}>
                 <div className={`feedback-card ${feedback.isCorrect ? 'correct' : 'incorrect'}`}>
-                  <div className="feedback-icon">
-                    {feedback.isCorrect ? <FiCheckCircle size={64} /> : <FiXCircle size={64} />}
-                  </div>
-                  <div className="feedback-title">
-                    {feedback.isCorrect ? 'Correct!' : 'Incorrect'}
+                  {/* Result Status */}
+                  <div className="result-status">
+                    <div className="feedback-icon">
+                      {feedback.isCorrect ? <FiCheckCircle size={48} /> : <FiXCircle size={48} />}
+                    </div>
+                    <div className="feedback-title">
+                      {feedback.isCorrect ? 'Correct' : 'Incorrect'}
+                    </div>
                   </div>
                   
-                  {/* Percentage Score Display */}
-                  {feedback.percentageScore !== undefined && (
-                    <div className="percentage-score-display">
-                      <div className="percentage-circle" style={{
-                        background: `conic-gradient(
-                          ${feedback.percentageScore >= 70 ? '#4CAF50' : feedback.percentageScore >= 50 ? '#FF9800' : '#F44336'} 
-                          ${feedback.percentageScore * 3.6}deg, 
-                          #e0e0e0 0deg
-                        )`
-                      }}>
-                        <span className="percentage-value">{feedback.percentageScore}%</span>
+                  {/* Correct Answer Section - Always shown for both correct and incorrect */}
+                  <div className="correct-answer-section">
+                    <div className="section-label">Correct Answer</div>
+                    <div className="correct-answer-text">{feedback.correctAnswer}</div>
+                  </div>
+                  
+                  {/* AI Explanation - Only for incorrect answers */}
+                  {!feedback.isCorrect && feedback.explanation && (
+                    <div className="ai-explanation-section">
+                      <div className="section-label explanation-label">
+                        <span className="label-icon">💡</span>
+                        Why This is the Correct Answer
                       </div>
-                      <span className="percentage-label">Answer Score</span>
+                      <div className="explanation-content">
+                        {feedback.explanation}
+                      </div>
                     </div>
                   )}
                   
-                  <div className="feedback-details">
-                    {/* Show generated expected answer when using AI-generated flow */}
-                    {feedback.generatedExpectedAnswer && (
-                      <div className="generated-expected-answer">
-                        <p><strong>AI Generated Expected Answer:</strong></p>
-                        <p className="generated-answer-text">{feedback.generatedExpectedAnswer}</p>
-                      </div>
-                    )}
-                    {!feedback.isCorrect && (
-                      <p><strong>Correct Answer:</strong> {feedback.correctAnswer}</p>
-                    )}
-                    {feedback.reason && (
-                      <p className="feedback-reason"><strong>Feedback:</strong> {feedback.reason}</p>
-                    )}
-                    {feedback.analysis && (
-                      <p className="feedback-analysis"><strong>Analysis:</strong> {feedback.analysis}</p>
-                    )}
-                    {feedback.missingConcepts && feedback.missingConcepts.length > 0 && (
-                      <p className="feedback-missing">
-                        <strong>Missing Concepts:</strong> {feedback.missingConcepts.join(', ')}
-                      </p>
-                    )}
-                    {currentQuestion.hint && (
-                      <p><strong>Hint:</strong> {currentQuestion.hint}</p>
-                    )}
-                  </div>
-                  <div className="feedback-meta">
-                    {feedback.confidence > 0 && (
-                      <div className="confidence-badge">
-                        <span>Confidence: {Math.round(feedback.confidence * 100)}%</span>
-                        <div className="confidence-bar">
-                          <div 
-                            className="confidence-fill" 
-                            style={{ width: `${feedback.confidence * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {feedback.method && (
-                      <span className="grading-method">
-                        Graded by: {feedback.method === 'exact_match' ? 'Exact Match' : 
-                                    feedback.method === 'keyword_match' ? 'Keyword Match' : 
-                                    feedback.method === 'ai_grading' ? 'AI (Stored Answer)' : 
-                                    feedback.method === 'ai_generated_expected' ? 'AI (Generated Answer)' :
-                                    feedback.method === 'ai_low_confidence' ? 'AI (Low Confidence)' :
-                                    feedback.method === 'ai_generated_low_confidence' ? 'AI Generated (Low Confidence)' :
-                                    feedback.method === 'fallback_similarity' ? 'Fallback Similarity' : 'Auto'}
-                      </span>
-                    )}
-                  </div>
-                  <div className={`points-display ${feedback.pointsAwarded > 0 ? 'positive' : ''}`}>
-                    {feedback.pointsAwarded > 0 
-                      ? `+${feedback.pointsAwarded} point${feedback.pointsAwarded > 1 ? 's' : ''}!`
-                      : 'Keep practicing!'}
-                  </div>
+                  {/* Next Button */}
                   <button className="next-question-btn" onClick={handleNext}>
                     <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Start Over'}</span>
                     {currentIndex < questions.length - 1 ? <FiArrowRight size={20} /> : <FiRotateCcw size={20} />}
