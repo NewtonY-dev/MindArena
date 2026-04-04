@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { FiBook } from 'react-icons/fi';
 
 export default function SubjectSelector({ gradeLevelId, value, onChange, error }) {
   const [subjects, setSubjects] = useState([]);
@@ -33,14 +34,17 @@ export default function SubjectSelector({ gradeLevelId, value, onChange, error }
   const isDisabled = !gradeLevelId;
 
   return (
-    <div className="form-field">
-      <label htmlFor="subject">Subject *</label>
+    <div className="form-section">
+      <label htmlFor="subject" className="form-label">
+        <FiBook className="label-icon" />
+        Subject
+      </label>
       <select
         id="subject"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={isDisabled}
-        className={error ? 'error' : ''}
+        className={`form-select ${error ? 'error' : ''}`}
       >
         <option value="">
           {isDisabled ? 'Select a grade first...' : 'Select a subject...'}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { FiLayers } from 'react-icons/fi';
 
 export default function GradeSelector({ value, onChange, error }) {
   const [gradeLevels, setGradeLevels] = useState([]);
@@ -23,35 +24,19 @@ export default function GradeSelector({ value, onChange, error }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="form-field">
-        <label>Grade Level *</label>
-        <div className="select-loading">Loading grade levels...</div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="form-field">
-        <label>Grade Level *</label>
-        <div className="select-error">
-          {loadError}
-          <button onClick={loadGradeLevels} className="retry-btn">Retry</button>
-        </div>
-      </div>
-    );
-  }
+  const isDisabled = loading || loadError;
 
   return (
-    <div className="form-field">
-      <label htmlFor="gradeLevel">Grade Level *</label>
+    <div className="form-section">
+      <label htmlFor="gradeLevel" className="form-label">
+        <FiLayers className="label-icon" />
+        Grade Level
+      </label>
       <select
         id="gradeLevel"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={error ? 'error' : ''}
+        className={`form-select ${error ? 'error' : ''}`}
       >
         <option value="">Select a grade level...</option>
         {gradeLevels.map((grade) => (
