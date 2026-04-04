@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FiPlusCircle, FiList, FiArrowRight, FiBookOpen, FiLayers } from 'react-icons/fi';
+import { FiPlusCircle, FiList, FiArrowRight, FiBookOpen, FiLayers, FiCalendar, FiPlusSquare } from 'react-icons/fi';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -43,6 +43,19 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
+          <Link to="/admin/contests" className="admin-action-card primary">
+            <div className="action-icon-wrapper">
+              <FiPlusSquare size={32} />
+            </div>
+            <div className="action-content">
+              <h3>Create Contest</h3>
+              <p>Set up timed contests with custom questions, schedule start/end dates</p>
+            </div>
+            <div className="action-arrow-wrapper">
+              <FiArrowRight size={20} />
+            </div>
+          </Link>
+
           <Link to="/admin/questions" className="admin-action-card secondary">
             <div className="action-icon-wrapper">
               <FiList size={32} />
@@ -50,6 +63,19 @@ export default function AdminDashboard() {
             <div className="action-content">
               <h3>Manage Questions</h3>
               <p>View, edit, filter, and organize your question library efficiently</p>
+            </div>
+            <div className="action-arrow-wrapper">
+              <FiArrowRight size={20} />
+            </div>
+          </Link>
+
+          <Link to="/admin/contests" className="admin-action-card secondary">
+            <div className="action-icon-wrapper">
+              <FiCalendar size={32} />
+            </div>
+            <div className="action-content">
+              <h3>Manage Contests</h3>
+              <p>Create and manage timed contests for students with leaderboards</p>
             </div>
             <div className="action-arrow-wrapper">
               <FiArrowRight size={20} />

@@ -11,6 +11,7 @@ import Leaderboard from './pages/Leaderboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminQuestionCreate from './pages/AdminQuestionCreate';
 import AdminManageQuestions from './pages/AdminManageQuestions';
+import AdminContests from './pages/AdminContests';
 import Challenge from './pages/Challenge';
 
 function ProtectedRoute({ children }) {
@@ -159,6 +160,11 @@ function AppRoutes() {
       <Route path="/admin/questions" element={
         <AdminProtectedRoute>
           <AdminManageQuestions />
+        </AdminProtectedRoute>
+      } />
+      <Route path="/admin/contests" element={
+        <AdminProtectedRoute>
+          <AdminContests />
         </AdminProtectedRoute>
       } />
       <Route path="/" element={<Navigate to="/dashboard" />} />

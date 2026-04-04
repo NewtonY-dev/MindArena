@@ -254,4 +254,38 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to delete question');
     return data;
   },
+
+  // Admin - Contest Methods
+  async getAdminContests() {
+    const res = await fetch(`${API_BASE_URL}/admin/contests`, {
+      headers: { ...getAuthHeaders() },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to get contests');
+    return data;
+  },
+
+  async createContest(contestData) {
+    const res = await fetch(`${API_BASE_URL}/admin/contests`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders() 
+      },
+      body: JSON.stringify(contestData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create contest');
+    return data;
+  },
+
+  async deleteContest(contestId) {
+    const res = await fetch(`${API_BASE_URL}/admin/contests/${contestId}`, {
+      method: 'DELETE',
+      headers: { ...getAuthHeaders() },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete contest');
+    return data;
+  },
 };

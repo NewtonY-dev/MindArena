@@ -20,75 +20,6 @@ export default function Contest() {
   const [registeredContests, setRegisteredContests] = useState(new Set());
   const { refreshUser } = useAuth();
 
-  // Mock contest data - in a real app, this would come from the backend
-  const mockContests = [
-    {
-      id: 1,
-      title: 'Weekly Math Challenge',
-      description: 'Test your math skills in this timed challenge!',
-      subject: 'Mathematics',
-      difficulty: 'medium',
-      duration: 10, // minutes
-      questionCount: 10,
-      startDate: '2026-04-01',
-      endDate: '2026-04-07',
-      status: 'available',
-      prize: '50 points'
-    },
-    {
-      id: 2,
-      title: 'Science Olympiad',
-      description: 'Comprehensive science quiz covering physics, chemistry, and biology.',
-      subject: 'Science',
-      difficulty: 'hard',
-      duration: 15,
-      questionCount: 15,
-      startDate: '2026-04-10',
-      endDate: '2026-04-20',
-      status: 'upcoming',
-      prize: '100 points'
-    },
-    {
-      id: 3,
-      title: 'Quick Quiz - Easy',
-      description: 'A quick warm-up quiz for beginners.',
-      subject: 'General',
-      difficulty: 'easy',
-      duration: 5,
-      questionCount: 5,
-      startDate: '2026-03-01',
-      endDate: '2026-03-31',
-      status: 'ended',
-      prize: '20 points'
-    },
-    {
-      id: 4,
-      title: 'Coding Challenge',
-      description: 'Test your programming skills with coding problems.',
-      subject: 'Computer Science',
-      difficulty: 'hard',
-      duration: 20,
-      questionCount: 8,
-      startDate: '2026-04-15',
-      endDate: '2026-04-25',
-      status: 'upcoming',
-      prize: '150 points'
-    },
-    {
-      id: 5,
-      title: 'History Bee',
-      description: 'Test your knowledge of world history!',
-      subject: 'History',
-      difficulty: 'medium',
-      duration: 12,
-      questionCount: 12,
-      startDate: '2026-03-15',
-      endDate: '2026-03-25',
-      status: 'ended',
-      prize: '75 points'
-    }
-  ];
-
   useEffect(() => {
     loadContests();
     loadUserRegistrations();
@@ -122,14 +53,11 @@ export default function Contest() {
   const loadContests = async () => {
     setLoading(true);
     try {
-      // In a real app, we'd fetch from the API
-      // For now, use mock data
-      setTimeout(() => {
-        setContests(mockContests);
-        setLoading(false);
-      }, 500);
+      const response = await api.get('/contests');
+      setContests(response.data.contests || []);
     } catch (error) {
       console.error('Failed to load contests:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -440,7 +368,7 @@ export default function Contest() {
           <div className="header-stat-pill">
             <FiFlag size={18} />
             <span className="header-stat-value">
-              {filterByDifficulty(contests.filter(c => c.status === 'available')).length}
+              {filterByDifficulty(contests.filter(c => c.status === 'active')).length}
             </span>
             <span className="header-stat-label">Available</span>
           </div>
@@ -454,7 +382,7 @@ export default function Contest() {
           <div className="header-stat-pill">
             <FiCheckSquare size={18} />
             <span className="header-stat-value">
-              {filterByDifficulty(contests.filter(c => c.status === 'ended')).length}
+              {filterByDifficulty(contests.filter(c => c.status === 'passed')).length}
             </span>
             <span className="header-stat-label">Completed</span>
           </div>
@@ -489,7 +417,7 @@ export default function Contest() {
           <FiFlag size={20} />
           <span className="tab-label">Available</span>
           <span className="tab-count">
-            {filterByDifficulty(contests.filter(c => c.status === 'available')).length}
+            {filterByDifficulty(contests.filter(c => c.status === 'active')).length}
           </span>
         </button>
         <button 
@@ -509,7 +437,7 @@ export default function Contest() {
           <FiCheckSquare size={20} />
           <span className="tab-label">Past</span>
           <span className="tab-count">
-            {filterByDifficulty(contests.filter(c => c.status === 'ended')).length}
+            {filterByDifficulty(contests.filter(c => c.status === 'passed')).length}
           </span>
         </button>
       </div>
@@ -517,9 +445,9 @@ export default function Contest() {
       {/* Contests based on active tab */}
       {activeTab === 'available' && (
         <>
-          {filterByDifficulty(contests.filter(c => c.status === 'available')).length > 0 ? (
+          {filterByDifficulty(contests.filter(c => c.status === 'active')).length > 0 ? (
             <div className="contests-grid">
-              {filterByDifficulty(contests.filter(c => c.status === 'available')).map((contest) => (
+              {filterByDifficulty(contests.filter(c => c.status === 'active')).map((contest) => (
                 <div key={contest.id} className="contest-card">
                   <div className="contest-card-header">
                     <div className="contest-icon-wrapper">
@@ -662,9 +590,9 @@ export default function Contest() {
 
       {activeTab === 'ended' && (
         <>
-          {filterByDifficulty(contests.filter(c => c.status === 'ended')).length > 0 ? (
+          {filterByDifficulty(contests.filter(c => c.status === 'passed')).length > 0 ? (
             <div className="contests-grid">
-              {filterByDifficulty(contests.filter(c => c.status === 'ended')).map((contest) => (
+              {filterByDifficulty(contests.filter(c => c.status === 'passed')).map((contest) => (
                 <div key={contest.id} className="contest-card ended">
                   <div className="contest-card-header">
                     <div className="contest-icon-wrapper">

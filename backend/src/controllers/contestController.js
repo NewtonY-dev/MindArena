@@ -1,95 +1,63 @@
-// Mock contest data for development
-const mockContests = [
-  {
-    id: 1,
-    title: 'Weekly Math Challenge',
-    description: 'Test your math skills in this timed challenge!',
-    subject: 'Mathematics',
-    difficulty: 'medium',
-    duration: 10, // minutes
-    questionCount: 10,
-    startDate: '2026-04-01',
-    endDate: '2026-04-07',
-    status: 'available',
-    prize: '50 points',
-    participants: 15,
-    maxParticipants: 100
-  },
-  {
-    id: 2,
-    title: 'Science Olympiad',
-    description: 'Comprehensive science quiz covering physics, chemistry, and biology.',
-    subject: 'Science',
-    difficulty: 'hard',
-    duration: 15,
-    questionCount: 15,
-    startDate: '2026-04-10',
-    endDate: '2026-04-20',
-    status: 'upcoming',
-    prize: '100 points',
-    participants: 8,
-    maxParticipants: 50
-  },
-  {
-    id: 3,
-    title: 'Quick Quiz - Easy',
-    description: 'A quick warm-up quiz for beginners.',
-    subject: 'General',
-    difficulty: 'easy',
-    duration: 5,
-    questionCount: 5,
-    startDate: '2026-03-01',
-    endDate: '2026-03-31',
-    status: 'ended',
-    prize: '20 points',
-    participants: 45,
-    maxParticipants: 200
-  },
-  {
-    id: 4,
-    title: 'Coding Challenge',
-    description: 'Test your programming skills with coding problems.',
-    subject: 'Computer Science',
-    difficulty: 'hard',
-    duration: 20,
-    questionCount: 8,
-    startDate: '2026-04-15',
-    endDate: '2026-04-25',
-    status: 'upcoming',
-    prize: '150 points',
-    participants: 3,
-    maxParticipants: 30
-  },
-  {
-    id: 5,
-    title: 'History Bee',
-    description: 'Test your knowledge of world history!',
-    subject: 'History',
-    difficulty: 'medium',
-    duration: 12,
-    questionCount: 12,
-    startDate: '2026-03-15',
-    endDate: '2026-03-25',
-    status: 'ended',
-    prize: '75 points',
-    participants: 22,
-    maxParticipants: 75
+import db from '../config/db.js';
+import {
+  getAllContests,
+  getContestById as getContestFromDB,
+  getContestsByStatus,
+  refreshContestStatus,
+  getContestQuestions,
+  assignQuestionsToContest,
+  createContestParticipant,
+  getContestParticipant,
+  updateContestParticipant,
+  createContestAttempt
+} from '../models/contest.model.js';
+
+// Helper to update contest statuses based on current time
+const updateContestStatuses = async () => {
+  try {
+    await refreshContestStatus();
+  } catch (error) {
+    console.error('Error refreshing contest statuses:', error);
   }
-];
+};
 
 const getContests = async (req, res) => {
   try {
-    const { difficulty } = req.query;
+    const { status, gradeLevelId, subjectId } = req.query;
+    const userGradeLevelId = req.user?.gradeLevelId;
     
-    // Filter by difficulty if provided
-    let contests = mockContests;
-    if (difficulty) {
-      contests = contests.filter(contest => contest.difficulty === difficulty);
+    // Refresh statuses before returning contests
+    await updateContestStatuses();
+    
+    let contests;
+    
+    if (status) {
+      // Filter by status (upcoming, active, passed)
+      contests = await getContestsByStatus(
+        status, 
+        gradeLevelId ? parseInt(gradeLevelId) : userGradeLevelId, 
+        50
+      );
+    } else {
+      // Get all contests with optional filters
+      contests = await getAllContests({
+        gradeLevelId: gradeLevelId ? parseInt(gradeLevelId) : userGradeLevelId,
+        subjectId: subjectId ? parseInt(subjectId) : null,
+        limit: 50
+      });
     }
+    
+    // Group contests by status for easier frontend handling
+    const groupedContests = {
+      upcoming: contests.filter(c => c.status === 'upcoming'),
+      active: contests.filter(c => c.status === 'active'),
+      passed: contests.filter(c => c.status === 'passed')
+    };
 
     res.json({
       success: true,
       contests: contests,
+      grouped: groupedContests,
       total: contests.length
     });
   } catch (error) {
@@ -104,7 +72,10 @@ const getContests = async (req, res) => {
 const getContestById = async (req, res) => {
   try {
     const { id } = req.params;
-    const contest = mockContests.find(c => c.id === parseInt(id));
+    
+    await updateContestStatuses();
+    
+    const contest = await getContestFromDB(parseInt(id));
     
     if (!contest) {
       return res.status(404).json({
@@ -112,10 +83,17 @@ const getContestById = async (req, res) => {
         error: 'Contest not found'
       });
     }
+    
+    // Get questions if contest is passed or user has participated
+    let questions = [];
+    if (contest.status === 'passed') {
+      questions = await getContestQuestions(parseInt(id));
+    }
 
     res.json({
       success: true,
-      contest
+      contest,
+      questions: questions.length > 0 ? questions : undefined
     });
   } catch (error) {
     console.error('Error getting contest:', error);
@@ -131,7 +109,9 @@ const startContest = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     
-    const contest = mockContests.find(c => c.id === parseInt(id));
+    await updateContestStatuses();
+    
+    const contest = await getContestFromDB(parseInt(id));
     
     if (!contest) {
       return res.status(404).json({
@@ -140,27 +120,58 @@ const startContest = async (req, res) => {
       });
     }
 
-    if (contest.status !== 'available') {
+    if (contest.status !== 'active') {
       return res.status(400).json({
         success: false,
-        error: 'Contest is not available'
+        error: `Contest is ${contest.status}. Only active contests can be started.`
+      });
+    }
+    
+    // Check if user has already started this contest
+    const participant = await getContestParticipant(parseInt(id), userId);
+    
+    if (participant && participant.score > 0) {
+      // User already completed
+      return res.status(400).json({
+        success: false,
+        error: 'You have already completed this contest'
+      });
+    }
+    
+    // Get questions for the contest
+    const questions = await getContestQuestions(parseInt(id));
+    
+    if (!participant) {
+      // Create participant record
+      await createContestParticipant({
+        contestId: parseInt(id),
+        userId,
+        score: 0,
+        correctAnswers: 0,
+        totalAnswered: 0,
+        currentQuestionIndex: 0,
+        timeSpentSeconds: 0
       });
     }
 
-    // In a real implementation, you would:
-    // 1. Check if user has already participated
-    // 2. Create contest participation record
-    // 3. Start timer
-    // 4. Generate contest-specific questions
-    
     res.json({
       success: true,
       message: 'Contest started successfully',
       contest: {
-        ...contest,
-        startTime: new Date().toISOString(),
-        questions: [] // Would be populated with actual questions
-      }
+        id: contest.id,
+        title: contest.title,
+        description: contest.description,
+        timePerQuestion: contest.time_per_question,
+        questionCount: contest.question_count,
+        currentQuestion: participant?.current_question_index || 0,
+        totalQuestions: questions.length
+      },
+      questions: questions.map(q => ({
+        id: q.id,
+        content: q.content,
+        hint: q.hint,
+        difficulty: q.difficulty_level
+      }))
     });
   } catch (error) {
     console.error('Error starting contest:', error);
@@ -173,24 +184,61 @@ const startContest = async (req, res) => {
 
 const submitContestAnswer = async (req, res) => {
   try {
-    const { contestId, questionId, answer } = req.body;
+    const { contestId, questionId, answer, timeTaken } = req.body;
     const userId = req.user.id;
     
-    // In a real implementation, you would:
-    // 1. Validate contest participation
-    // 2. Check time remaining
-    // 3. Validate answer
-    // 4. Calculate points based on speed and accuracy
-    // 5. Update contest score
+    // Get the correct answer from questions
+    const getCorrectAnswerSql = `SELECT correct_answer FROM questions WHERE id = ?`;
+    const answerResult = await new Promise((resolve, reject) => {
+      db.query(getCorrectAnswerSql, [questionId], (err, results) => {
+        if (err) reject(err);
+        else resolve(results);
+      });
+    });
     
-    const isCorrect = Math.random() > 0.5; // Mock validation
-    const points = isCorrect ? 10 : 0;
+    if (answerResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Question not found'
+      });
+    }
+    
+    const correctAnswer = answerResult[0].correct_answer;
+    const isCorrect = answer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
+    
+    // Calculate points (10 base + speed bonus)
+    const basePoints = 10;
+    const timeBonus = isCorrect ? Math.max(0, Math.floor((30 - timeTaken) / 3)) : 0;
+    const pointsAwarded = isCorrect ? basePoints + timeBonus : 0;
+    
+    // Record the attempt
+    await createContestAttempt({
+      contestId,
+      userId,
+      questionId,
+      answerGiven: answer,
+      isCorrect,
+      pointsAwarded,
+      timeTaken
+    });
+    
+    // Get participant and update score
+    const participant = await getContestParticipant(contestId, userId);
+    if (participant) {
+      await updateContestParticipant(participant.id, {
+        score: participant.score + pointsAwarded,
+        correctAnswers: participant.correct_answers + (isCorrect ? 1 : 0),
+        totalAnswered: participant.total_answered + 1,
+        currentQuestionIndex: participant.current_question_index + 1,
+        timeSpentSeconds: participant.time_spent_seconds + timeTaken
+      });
+    }
     
     res.json({
       success: true,
       isCorrect,
-      pointsAwarded: points,
-      totalPoints: points // Would be cumulative in real implementation
+      pointsAwarded,
+      totalPoints: participant ? participant.score + pointsAwarded : pointsAwarded
     });
   } catch (error) {
     console.error('Error submitting contest answer:', error);
@@ -205,19 +253,43 @@ const getContestLeaderboard = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Mock leaderboard data
-    const mockLeaderboard = [
-      { rank: 1, userId: 1, displayName: 'Alice Johnson', score: 145, accuracy: 92.5 },
-      { rank: 2, userId: 2, displayName: 'Bob Smith', score: 138, accuracy: 89.2 },
-      { rank: 3, userId: 3, displayName: 'Charlie Brown', score: 125, accuracy: 87.8 },
-      { rank: 4, userId: 4, displayName: 'Diana Wilson', score: 118, accuracy: 85.3 },
-      { rank: 5, userId: 5, displayName: 'Eve Davis', score: 105, accuracy: 82.1 }
-    ];
+    const sql = `
+      SELECT 
+        cp.user_id,
+        u.display_name,
+        cp.score,
+        cp.correct_answers,
+        cp.total_answered,
+        CASE WHEN cp.total_answered > 0 
+          THEN ROUND((cp.correct_answers / cp.total_answered) * 100, 1) 
+          ELSE 0 
+        END as accuracy
+      FROM contest_participants cp
+      INNER JOIN users u ON cp.user_id = u.id
+      WHERE cp.contest_id = ?
+      ORDER BY cp.score DESC, cp.correct_answers DESC
+      LIMIT 50
+    `;
+    
+    const leaderboard = await new Promise((resolve, reject) => {
+      db.query(sql, [parseInt(id)], (err, results) => {
+        if (err) reject(err);
+        else resolve(results.map((row, index) => ({
+          rank: index + 1,
+          userId: row.user_id,
+          displayName: row.display_name,
+          score: row.score,
+          accuracy: row.accuracy,
+          correctAnswers: row.correct_answers,
+          totalAnswered: row.total_answered
+        })));
+      });
+    });
     
     res.json({
       success: true,
-      leaderboard: mockLeaderboard,
-      totalParticipants: mockLeaderboard.length
+      leaderboard,
+      totalParticipants: leaderboard.length
     });
   } catch (error) {
     console.error('Error getting contest leaderboard:', error);
@@ -233,7 +305,9 @@ const registerForContest = async (req, res) => {
     const { contestId } = req.params;
     const userId = req.user.id;
     
-    const contest = mockContests.find(c => c.id === parseInt(contestId));
+    await updateContestStatuses();
+    
+    const contest = await getContestFromDB(parseInt(contestId));
     
     if (!contest) {
       return res.status(404).json({
@@ -242,17 +316,33 @@ const registerForContest = async (req, res) => {
       });
     }
 
-    if (contest.status !== 'upcoming') {
+    if (contest.status !== 'upcoming' && contest.status !== 'active') {
       return res.status(400).json({
         success: false,
-        error: 'Can only register for upcoming contests'
+        error: 'Can only register for upcoming or active contests'
       });
     }
-
-    // In a real implementation, you would:
-    // 1. Check if user already registered
-    // 2. Create registration record in database
-    // 3. Send confirmation notification
+    
+    // Check if already registered
+    const existingParticipant = await getContestParticipant(parseInt(contestId), userId);
+    
+    if (existingParticipant) {
+      return res.status(400).json({
+        success: false,
+        error: 'Already registered for this contest'
+      });
+    }
+    
+    // Create participant record (registration only)
+    await createContestParticipant({
+      contestId: parseInt(contestId),
+      userId,
+      score: 0,
+      correctAnswers: 0,
+      totalAnswered: 0,
+      currentQuestionIndex: 0,
+      timeSpentSeconds: 0
+    });
     
     res.json({
       success: true,
@@ -273,18 +363,21 @@ const unregisterFromContest = async (req, res) => {
     const { contestId } = req.params;
     const userId = req.user.id;
     
-    const contest = mockContests.find(c => c.id === parseInt(contestId));
+    const sql = `DELETE FROM contest_participants WHERE contest_id = ? AND user_id = ? AND score = 0`;
     
-    if (!contest) {
-      return res.status(404).json({
+    const result = await new Promise((resolve, reject) => {
+      db.query(sql, [parseInt(contestId), userId], (err, results) => {
+        if (err) reject(err);
+        else resolve(results);
+      });
+    });
+    
+    if (result.affectedRows === 0) {
+      return res.status(400).json({
         success: false,
-        error: 'Contest not found'
+        error: 'Cannot unregister - contest may have already started or not registered'
       });
     }
-
-    // In a real implementation, you would:
-    // 1. Remove registration record from database
-    // 2. Send cancellation notification
     
     res.json({
       success: true,
@@ -304,17 +397,43 @@ const getUserContestRegistrations = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    // In a real implementation, you would:
-    // 1. Query database for user's contest registrations
-    // 2. Return list of registered contest IDs
+    await updateContestStatuses();
     
-    // Mock data - return registrations for upcoming contests
-    const upcomingContests = mockContests.filter(c => c.status === 'upcoming');
-    const registeredContests = upcomingContests.slice(0, 1); // Mock: user registered for first upcoming contest
+    const sql = `
+      SELECT 
+        c.*,
+        gl.name as grade_level_name,
+        s.name as subject_name,
+        cp.score as user_score,
+        cp.correct_answers as user_correct,
+        cp.total_answered as user_answered
+      FROM contest_participants cp
+      INNER JOIN contests c ON cp.contest_id = c.id
+      LEFT JOIN grade_levels gl ON c.grade_level_id = gl.id
+      LEFT JOIN subjects s ON c.subject_id = s.id
+      WHERE cp.user_id = ?
+      ORDER BY c.start_time DESC
+    `;
+    
+    const registrations = await new Promise((resolve, reject) => {
+      db.query(sql, [userId], (err, results) => {
+        if (err) reject(err);
+        else resolve(results);
+      });
+    });
     
     res.json({
       success: true,
-      registrations: registeredContests.map(c => c.id)
+      registrations: registrations.map(r => ({
+        contestId: r.id,
+        title: r.title,
+        status: r.status,
+        startTime: r.start_time,
+        endTime: r.end_time,
+        userScore: r.user_score,
+        userCorrect: r.user_correct,
+        userAnswered: r.user_answered
+      }))
     });
   } catch (error) {
     console.error('Error getting contest registrations:', error);

@@ -12,6 +12,13 @@ import {
   createChallengeAttemptsTable,
   createChallengeLeaderboardView
 } from './challenge.model.js';
+import {
+  createContestsTable,
+  createContestQuestionsTable,
+  createContestParticipantsTable,
+  createContestAttemptsTable
+} from './contest.model.js';
+import { fixContestsTable, fixQuestionsTable } from './fixTables.js';
 
 export const initializeDatabase = async () => {
   try {
@@ -19,6 +26,7 @@ export const initializeDatabase = async () => {
     await createGradeLevelsTable();
     await createSubjectsTable();
     await createQuestionsTable();
+    await fixQuestionsTable();
     await createAttemptsTable();
     await createUserSubjectsTable();
     await createChallengeRoomsTable();
@@ -26,6 +34,11 @@ export const initializeDatabase = async () => {
     await createChallengeQuestionsTable();
     await createChallengeAttemptsTable();
     await createChallengeLeaderboardView();
+    await createContestsTable();
+    await fixContestsTable();
+    await createContestQuestionsTable();
+    await createContestParticipantsTable();
+    await createContestAttemptsTable();
     console.log('All database tables initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
