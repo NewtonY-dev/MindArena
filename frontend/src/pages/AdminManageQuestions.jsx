@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import './AdminManageQuestions.css';
 import { FiEdit2, FiTrash2, FiX, FiFilter, FiPlus, FiFileText, FiCheck, FiAlertCircle, FiHelpCircle, FiCheckCircle, FiBarChart2, FiZap, FiBookOpen, FiSave } from 'react-icons/fi';
@@ -183,13 +184,13 @@ export default function AdminManageQuestions() {
             <p>View, edit, and organize your question library</p>
           </div>
         </div>
-        <a href="/admin/questions/create" className="header-action-btn">
+        <Link to="/admin/questions/create" className="header-action-btn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           Create New
-        </a>
+        </Link>
       </div>
 
       {/* Stats Bar */}
@@ -293,9 +294,9 @@ export default function AdminManageQuestions() {
               onChange={(e) => setSelectedDifficulty(e.target.value)}
             >
               <option value="">All Difficulties</option>
-              <option value="easy">● Easy</option>
-              <option value="medium">● Medium</option>
-              <option value="hard">● Hard</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
             </select>
           </div>
 
@@ -322,13 +323,13 @@ export default function AdminManageQuestions() {
             </div>
             <h3>No questions found</h3>
             <p>{questions.length > 0 ? 'Try adjusting your filters.' : 'Create your first question to get started.'}</p>
-            <a href="/admin/questions/create" className="create-btn">
+            <Link to="/admin/questions/create" className="create-btn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
               Create Question
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="questions-grid">
@@ -369,13 +370,13 @@ export default function AdminManageQuestions() {
                     <div className="extra-info">
                       {question.hint && (
                         <div className="info-row">
-                          <span className="info-label">💡 Hint:</span>
+                          <span className="info-label">Hint:</span>
                           <span className="info-text">{question.hint}</span>
                         </div>
                       )}
                       {question.explanation && (
                         <div className="info-row">
-                          <span className="info-label">📖 Explanation:</span>
+                          <span className="info-label">Explanation:</span>
                           <span className="info-text">{question.explanation}</span>
                         </div>
                       )}
