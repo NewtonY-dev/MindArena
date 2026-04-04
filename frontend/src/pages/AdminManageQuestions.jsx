@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import './AdminManageQuestions.css';
-import { FiEdit2, FiTrash2, FiX, FiFilter, FiPlus, FiFileText, FiCheck, FiAlertCircle, FiHelpCircle, FiCheckCircle, FiBarChart2, FiZap, FiBookOpen, FiSave } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiX, FiFilter, FiPlus, FiFileText, FiCheck, FiAlertCircle, FiHelpCircle, FiCheckCircle, FiBarChart2, FiZap, FiBookOpen, FiSave, FiList } from 'react-icons/fi';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -27,8 +27,12 @@ export default function AdminManageQuestions() {
     correctAnswer: '',
     hint: '',
     explanation: '',
-    difficultyLevel: 'medium'
+    difficultyLevel: 'medium',
+    questionType: 'short_answer',
+    options: ['', '', '', '']
   });
+
+  const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
   useEffect(() => {
     loadQuestions();
@@ -106,14 +110,33 @@ export default function AdminManageQuestions() {
     setSelectedDifficulty('');
   };
 
+  const handleOptionChange = (index, value) => {
+    setFormData(prev => {
+      const newOptions = [...prev.options];
+      newOptions[index] = value;
+      return { ...prev, options: newOptions };
+    });
+  };
+
   const handleEdit = (question) => {
     setEditingQuestion(question);
+    let options = ['', '', '', ''];
+    if (question.question_type === 'multiple_choice' && question.options) {
+      try {
+        options = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
+        if (!Array.isArray(options)) options = ['', '', '', ''];
+      } catch {
+        options = ['', '', '', ''];
+      }
+    }
     setFormData({
       content: question.content || '',
       correctAnswer: question.correct_answer || '',
       hint: question.hint || '',
       explanation: question.explanation || '',
-      difficultyLevel: question.difficulty_level || 'medium'
+      difficultyLevel: question.difficulty_level || 'medium',
+      questionType: question.question_type || 'short_answer',
+      options: options
     });
   };
 
@@ -125,7 +148,9 @@ export default function AdminManageQuestions() {
         correctAnswer: formData.correctAnswer.trim(),
         hint: formData.hint.trim() || null,
         explanation: formData.explanation.trim() || null,
-        difficultyLevel: formData.difficultyLevel
+        difficultyLevel: formData.difficultyLevel,
+        questionType: formData.questionType,
+        options: formData.questionType === 'multiple_choice' ? formData.options : undefined
       });
       setSuccessMessage('Question updated successfully!');
       setEditingQuestion(null);
@@ -440,20 +465,6 @@ export default function AdminManageQuestions() {
               <div className="form-row">
                 <div className="form-section half">
                   <label className="form-label">
-                    <FiCheckCircle className="label-icon" />
-                    Correct Answer
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.correctAnswer}
-                    onChange={(e) => setFormData({...formData, correctAnswer: e.target.value})}
-                    placeholder="Answer"
-                    required
-                  />
-                </div>
-                <div className="form-section half">
-                  <label className="form-label">
                     <FiBarChart2 className="label-icon" />
                     Difficulty
                   </label>
@@ -467,7 +478,109 @@ export default function AdminManageQuestions() {
                     <option value="hard">● Hard</option>
                   </select>
                 </div>
+                <div className="form-section half">
+                  <label className="form-label">
+                    <FiList className="label-icon" />
+                    Question Type
+                  </label>
+                  <select
+                    className="form-select"
+                    value={formData.questionType}
+                    onChange={(e) => setFormData({...formData, questionType: e.target.value})}
+                  >
+                    <option value="short_answer">Short Answer</option>
+                    <option value="multiple_choice">Multiple Choice</option>
+                    <option value="true_false">True / False</option>
+                  </select>
+                </div>
               </div>
+
+              {/* Dynamic Answer Input based on Question Type */}
+              {formData.questionType === 'short_answer' && (
+                <div className="form-section">
+                  <label className="form-label">
+                    <FiCheckCircle className="label-icon" />
+                    Correct Answer
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.correctAnswer}
+                    onChange={(e) => setFormData({...formData, correctAnswer: e.target.value})}
+                    placeholder="Enter the correct answer..."
+                    required
+                  />
+                </div>
+              )}
+
+              {formData.questionType === 'multiple_choice' && (
+                <div className="form-section">
+                  <label className="form-label">Answer Options</label>
+                  <div className="options-grid">
+                    {OPTION_LABELS.map((label, index) => (
+                      <div key={label} className="option-input-row">
+                        <span className="option-label">{label}.</span>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={formData.options[index] || ''}
+                          onChange={(e) => handleOptionChange(index, e.target.value)}
+                          placeholder={`Option ${label}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="correct-answer-select" style={{marginTop: '1rem'}}>
+                    <label className="form-label">
+                      <FiCheckCircle className="label-icon" />
+                      Correct Answer
+                    </label>
+                    <select
+                      className="form-select"
+                      value={formData.correctAnswer}
+                      onChange={(e) => setFormData({...formData, correctAnswer: e.target.value})}
+                    >
+                      <option value="">Select correct answer</option>
+                      {OPTION_LABELS.map((label) => (
+                        <option key={label} value={label}>
+                          {label} - {formData.options[OPTION_LABELS.indexOf(label)] || `Option ${label}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {formData.questionType === 'true_false' && (
+                <div className="form-section">
+                  <label className="form-label">
+                    <FiCheckCircle className="label-icon" />
+                    Correct Answer
+                  </label>
+                  <div className="true-false-options">
+                    <label className={`radio-option ${formData.correctAnswer === 'true' ? 'selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="correctAnswer"
+                        value="true"
+                        checked={formData.correctAnswer === 'true'}
+                        onChange={(e) => setFormData({...formData, correctAnswer: e.target.value})}
+                      />
+                      <span className="radio-label">True</span>
+                    </label>
+                    <label className={`radio-option ${formData.correctAnswer === 'false' ? 'selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="correctAnswer"
+                        value="false"
+                        checked={formData.correctAnswer === 'false'}
+                        onChange={(e) => setFormData({...formData, correctAnswer: e.target.value})}
+                      />
+                      <span className="radio-label">False</span>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <div className="form-section">
                 <label className="form-label">

@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QuestionForm } from '../components/admin';
+import { FiPlus } from 'react-icons/fi';
 import './AdminQuestionCreate.css';
 
 export default function AdminQuestionCreate() {
@@ -14,8 +15,11 @@ export default function AdminQuestionCreate() {
     <div className="admin-page">
       <div className="admin-container">
         <div className="admin-header">
+          <div className="header-icon">
+            <FiPlus size={32} />
+          </div>
           <h1>Create Question</h1>
-          <p>Create a new short answer/explanation question for students</p>
+          <p>Create a new question for students</p>
         </div>
 
         <div className="admin-form-card">

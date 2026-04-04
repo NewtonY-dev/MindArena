@@ -100,18 +100,19 @@ export const getQuestionById = (id) => {
 };
 
 export const createQuestion = (questionData) => {
-  const { gradeLevelId, subjectId, content, correctAnswer, hint, explanation, difficultyLevel = 'medium' } = questionData;
+  const { gradeLevelId, subjectId, content, correctAnswer, hint, explanation, difficultyLevel = 'medium', questionType = 'short_answer', options } = questionData;
   const sql = `
-    INSERT INTO questions (grade_level_id, subject_id, content, correct_answer, hint, explanation, difficulty_level)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO questions (grade_level_id, subject_id, content, question_type, options, correct_answer, hint, explanation, difficulty_level)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   // Convert undefined to null for database compatibility
   const hintValue = hint === undefined ? null : hint;
   const explanationValue = explanation === undefined ? null : explanation;
+  const optionsValue = options ? JSON.stringify(options) : null;
   
   return new Promise((resolve, reject) => {
-    connection.query(sql, [gradeLevelId, subjectId, content, correctAnswer, hintValue, explanationValue, difficultyLevel], (err, results) => {
+    connection.query(sql, [gradeLevelId, subjectId, content, questionType, optionsValue, correctAnswer, hintValue, explanationValue, difficultyLevel], (err, results) => {
       if (err) reject(err);
       else resolve(results.insertId);
     });
@@ -136,19 +137,20 @@ export const getAllQuestions = () => {
 };
 
 export const updateQuestion = (questionId, questionData) => {
-  const { content, correctAnswer, hint, explanation, difficultyLevel } = questionData;
+  const { content, correctAnswer, hint, explanation, difficultyLevel, questionType, options } = questionData;
   const sql = `
     UPDATE questions 
-    SET content = ?, correct_answer = ?, hint = ?, explanation = ?, difficulty_level = ?
+    SET content = ?, correct_answer = ?, hint = ?, explanation = ?, difficulty_level = ?, question_type = ?, options = ?
     WHERE id = ?
   `;
   
   // Convert undefined to null for database compatibility
   const hintValue = hint === undefined ? null : hint;
   const explanationValue = explanation === undefined ? null : explanation;
+  const optionsValue = options ? JSON.stringify(options) : null;
   
   return new Promise((resolve, reject) => {
-    connection.query(sql, [content, correctAnswer, hintValue, explanationValue, difficultyLevel, questionId], (err, results) => {
+    connection.query(sql, [content, correctAnswer, hintValue, explanationValue, difficultyLevel, questionType, optionsValue, questionId], (err, results) => {
       if (err) reject(err);
       else resolve(results.affectedRows > 0);
     });
