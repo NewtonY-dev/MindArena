@@ -1,5 +1,6 @@
 import { initializeDatabase } from '../models/createTables.js';
 import { seedDatabase } from '../models/seedData.js';
+import { runMigration as runTriggerMigration } from '../migrations/dropProblematicTriggers.js';
 import config from './index.js';
 
 const setupDatabase = async () => {
@@ -12,6 +13,11 @@ const setupDatabase = async () => {
     console.log('📋 Creating database tables...');
     await initializeDatabase();
     console.log('✅ Database tables created successfully');
+
+    // Step 1.5: Run migrations (drop problematic triggers)
+    console.log('🔄 Running migrations...');
+    await runTriggerMigration();
+    console.log('✅ Migrations completed');
     
     // Step 2: Seed initial data (only if not in test environment)
     if (config.NODE_ENV !== 'test') {

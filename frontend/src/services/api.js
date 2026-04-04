@@ -88,7 +88,7 @@ export const api = {
     return data;
   },
 
-  // Submit Answer
+  // Submit Answer (legacy - for MCQ, true/false)
   async submitAnswer(questionId, answerGiven) {
     const res = await fetch(`${API_BASE_URL}/practice/submit`, {
       method: 'POST',
@@ -97,6 +97,18 @@ export const api = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to submit answer');
+    return data;
+  },
+
+  // Grade Short Answer (AI-powered grading)
+  async gradeAnswer(questionId, answer) {
+    const res = await fetch(`${API_BASE_URL}/questions/${questionId}/grade`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to grade answer');
     return data;
   },
 

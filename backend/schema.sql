@@ -777,20 +777,6 @@ BEGIN
 END //
 DELIMITER ;
 
--- Trigger to log user activity (optional for analytics)
-DELIMITER //
-CREATE TRIGGER log_attempt_creation
-AFTER INSERT ON attempts
-FOR EACH ROW
-BEGIN
-    -- This trigger can be extended to log to an activity_log table
-    -- For now, it ensures that attempt timestamp is set correctly
-    UPDATE attempts 
-    SET created_at = CURRENT_TIMESTAMP 
-    WHERE id = NEW.id;
-END //
-DELIMITER ;
-
 -- Contest Registration Triggers
 
 -- Trigger to automatically notify users when contest becomes available
@@ -803,20 +789,6 @@ BEGIN
         -- Notify all registered users
         CALL NotifyRegisteredUsers(NEW.id);
     END IF;
-END //
-DELIMITER ;
-
--- Trigger to log registration activity
-DELIMITER //
-CREATE TRIGGER log_contest_registration
-AFTER INSERT ON contest_registrations
-FOR EACH ROW
-BEGIN
-    -- This trigger can be extended to log to an activity_log table
-    -- For now, it ensures the registration timestamp is set correctly
-    UPDATE contest_registrations 
-    SET registered_at = CURRENT_TIMESTAMP 
-    WHERE id = NEW.id;
 END //
 DELIMITER ;
 

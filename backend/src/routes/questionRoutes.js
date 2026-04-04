@@ -10,6 +10,7 @@ import {
 } from "../models/question.model.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
+import { gradeAndRecordAnswer } from "../services/gradingService.js";
 
 const router = express.Router();
 
@@ -205,6 +206,40 @@ router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
     res.json({ message: "Question deleted successfully" });
   } catch (error) {
     console.error("Error deleting question:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Grade a student's answer (POST /api/questions/:questionId/grade)
+router.post("/:questionId/grade", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { questionId } = req.params;
+    const { answer } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!answer || answer.trim().length === 0) {
+      return res.status(400).json({ error: "Answer is required" });
+    }
+
+    const result = await gradeAndRecordAnswer({
+      userId,
+      questionId: parseInt(questionId, 10),
+      userAnswer: answer
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error grading answer:", error);
+    if (error.message === 'Question not found') {
+      return res.status(404).json({ error: "Question not found" });
+    }
+    if (error.message === 'Answer cannot be empty') {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: "Internal server error" });
   }
 });

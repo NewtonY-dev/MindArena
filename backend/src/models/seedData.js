@@ -63,7 +63,21 @@ export const seedQuestions = () => {
     (17, 10, 2, 'What is a thesis statement?', 'Main argument of an essay', 'It appears in the introduction.', 'medium'),
     (18, 10, 2, 'Correct the sentence: Him and me went to the store.', 'He and I went to the store', 'Use subject pronouns.', 'easy'),
     (19, 10, 2, 'What is a metaphor?', 'Comparison without using "like" or "as"', 'Direct comparison between two unlike things.', 'medium'),
-    (20, 10, 2, 'Identify the clause type in "When the rain stops, we will play"', 'subordinate clause', 'It cannot stand alone as a sentence.', 'hard')
+    (20, 10, 2, 'Identify the clause type in "When the rain stops, we will play"', 'subordinate clause', 'It cannot stand alone as a sentence.', 'hard'),
+    
+    -- Math Questions - Grade 12 (for grade 12 students)
+    (21, 12, 1, 'What is the limit of (x² - 1)/(x - 1) as x approaches 1?', '2', 'Factor the numerator.', 'hard'),
+    (22, 12, 1, 'Find the integral of 2x dx', 'x² + C', 'Use the power rule for integration.', 'medium'),
+    (23, 12, 1, 'What is the value of e^(iπ) + 1?', '0', 'This is Euler identity.', 'hard'),
+    (24, 12, 1, 'Solve for x: ln(x) = 3', 'e³ or approximately 20.09', 'Exponentiate both sides.', 'medium'),
+    (25, 12, 1, 'What is the determinant of [[1, 2], [3, 4]]?', '-2', 'Use the formula ad - bc.', 'medium'),
+    
+    -- English Questions - Grade 12
+    (26, 12, 2, 'What is the theme of a literary work?', 'Central idea or message', 'It is the underlying meaning.', 'medium'),
+    (27, 12, 2, 'Define "dramatic irony"', 'When audience knows more than characters', 'The audience has superior knowledge.', 'hard'),
+    (28, 12, 2, 'What is an unreliable narrator?', 'A narrator whose credibility is compromised', 'Question the narrator truthfulness.', 'hard'),
+    (29, 12, 2, 'Correct the error: Neither the students nor the teacher were ready.', 'was ready', 'Use singular verb with neither...nor.', 'medium'),
+    (30, 12, 2, 'What is a bildungsroman?', 'A coming-of-age story', 'Focuses on psychological and moral growth.', 'hard')
   `;
   return new Promise((resolve, reject) => {
     db.query(sql, (err) => {
