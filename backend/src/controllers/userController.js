@@ -165,10 +165,13 @@ export const getDashboardStats = async (req, res) => {
     const statsSql = `
       SELECT 
         u.points,
-        COUNT(a.id) as total_attempted,
-        SUM(CASE WHEN a.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers
+        COUNT(DISTINCT a.id) as practice_attempted,
+        SUM(CASE WHEN a.is_correct = 1 THEN 1 ELSE 0 END) as practice_correct,
+        COUNT(DISTINCT ca.id) as challenge_attempted,
+        SUM(CASE WHEN ca.is_correct = 1 THEN 1 ELSE 0 END) as challenge_correct
       FROM users u
       LEFT JOIN attempts a ON u.id = a.user_id
+      LEFT JOIN challenge_attempts ca ON u.id = ca.user_id
       WHERE u.id = ?
       GROUP BY u.id, u.points
     `;
@@ -184,9 +187,15 @@ export const getDashboardStats = async (req, res) => {
       }
       
       const stats = results[0];
-      const totalAttempted = stats.total_attempted || 0;
-      const correctAnswers = stats.correct_answers || 0;
-      const accuracy = totalAttempted > 0 ? (correctAnswers / totalAttempted) * 100 : 0;
+      const practiceAttempted = stats.practice_attempted || 0;
+      const practiceCorrect = stats.practice_correct || 0;
+      const challengeAttempted = stats.challenge_attempted || 0;
+      const challengeCorrect = stats.challenge_correct || 0;
+      
+      const totalAttempted = practiceAttempted + challengeAttempted;
+      const totalCorrect = practiceCorrect + challengeCorrect;
+      let accuracy = totalAttempted > 0 ? (totalCorrect / totalAttempted) * 100 : 0;
+      accuracy = Math.max(0, Math.min(100, accuracy));
       
       res.json({
         points: stats.points || 0,
