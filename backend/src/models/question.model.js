@@ -7,6 +7,8 @@ export const createQuestionsTable = () => {
       grade_level_id INT NOT NULL,
       subject_id INT NOT NULL,
       content TEXT NOT NULL,
+      question_type VARCHAR(20) DEFAULT 'short_answer',
+      options JSON,
       correct_answer VARCHAR(500) NOT NULL,
       hint TEXT,
       explanation TEXT,
@@ -16,7 +18,8 @@ export const createQuestionsTable = () => {
       FOREIGN KEY (grade_level_id) REFERENCES grade_levels(id) ON DELETE CASCADE,
       FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
       INDEX idx_grade_subject (grade_level_id, subject_id),
-      INDEX idx_difficulty (difficulty_level)
+      INDEX idx_difficulty (difficulty_level),
+      INDEX idx_question_type (question_type)
     );
   `;
   return new Promise((resolve, reject) => {
@@ -33,7 +36,8 @@ export const createQuestionsTable = () => {
 export const getQuestionsByGradeAndSubject = (gradeLevelId, subjectId = null) => {
   let sql = `
     SELECT q.id, q.content, q.difficulty_level, q.hint,
-           gl.name as grade_level_name, s.name as subject_name
+           gl.name as grade_level_name, s.name as subject_name,
+           q.question_type, q.options
     FROM questions q
     INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
     INNER JOIN subjects s ON q.subject_id = s.id
@@ -96,16 +100,68 @@ export const getQuestionById = (id) => {
 };
 
 export const createQuestion = (questionData) => {
-  const { gradeLevelId, subjectId, content, correctAnswer, hint, explanation, difficultyLevel } = questionData;
+  const { gradeLevelId, subjectId, content, correctAnswer, hint, explanation, difficultyLevel = 'medium' } = questionData;
   const sql = `
     INSERT INTO questions (grade_level_id, subject_id, content, correct_answer, hint, explanation, difficulty_level)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
   
+  // Convert undefined to null for database compatibility
+  const hintValue = hint === undefined ? null : hint;
+  const explanationValue = explanation === undefined ? null : explanation;
+  
   return new Promise((resolve, reject) => {
-    connection.query(sql, [gradeLevelId, subjectId, content, correctAnswer, hint, explanation, difficultyLevel], (err, results) => {
+    connection.query(sql, [gradeLevelId, subjectId, content, correctAnswer, hintValue, explanationValue, difficultyLevel], (err, results) => {
       if (err) reject(err);
       else resolve(results.insertId);
+    });
+  });
+};
+
+export const getAllQuestions = () => {
+  const sql = `
+    SELECT q.*, gl.name as grade_level_name, s.name as subject_name
+    FROM questions q
+    INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
+    INNER JOIN subjects s ON q.subject_id = s.id
+    ORDER BY q.id DESC
+  `;
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, (err, results) => {
+      if (err) reject(err);
+      else resolve(results);
+    });
+  });
+};
+
+export const updateQuestion = (questionId, questionData) => {
+  const { content, correctAnswer, hint, explanation, difficultyLevel } = questionData;
+  const sql = `
+    UPDATE questions 
+    SET content = ?, correct_answer = ?, hint = ?, explanation = ?, difficulty_level = ?
+    WHERE id = ?
+  `;
+  
+  // Convert undefined to null for database compatibility
+  const hintValue = hint === undefined ? null : hint;
+  const explanationValue = explanation === undefined ? null : explanation;
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [content, correctAnswer, hintValue, explanationValue, difficultyLevel, questionId], (err, results) => {
+      if (err) reject(err);
+      else resolve(results.affectedRows > 0);
+    });
+  });
+};
+
+export const deleteQuestion = (questionId) => {
+  const sql = `DELETE FROM questions WHERE id = ?`;
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [questionId], (err, results) => {
+      if (err) reject(err);
+      else resolve(results.affectedRows > 0);
     });
   });
 };

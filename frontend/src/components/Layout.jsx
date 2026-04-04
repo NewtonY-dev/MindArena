@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Brain, Home, BookOpen, Flag, Swords, Trophy, Star, LogOut, User } from 'lucide-react';
+import { Brain, Home, BookOpen, Flag, Swords, Trophy, Star, LogOut, User, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Layout.css';
 
@@ -54,41 +54,62 @@ export default function Layout({ children }) {
 
           {/* Navigation */}
           <nav className="nav-section">
-            <Link 
-              to="/dashboard" 
-              className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
-            >
-              <Home size={20} color="white" />
-              <span className="nav-label">Dashboard</span>
-            </Link>
-            <Link 
-              to="/practice" 
-              className={`nav-item ${isActive('/practice') ? 'active' : ''}`}
-            >
-              <BookOpen size={20} color="white" />
-              <span className="nav-label">Practice</span>
-            </Link>
-            <Link 
-              to="/contest" 
-              className={`nav-item ${isActive('/contest') ? 'active' : ''}`}
-            >
-              <Flag size={20} color="white" />
-              <span className="nav-label">Contest</span>
-            </Link>
-            <Link 
-              to="/challenge" 
-              className={`nav-item ${isActive('/challenge') ? 'active' : ''}`}
-            >
-              <Swords size={20} color="white" />
-              <span className="nav-label">1v1 Challenge</span>
-            </Link>
-            <Link 
-              to="/leaderboard" 
-              className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}
-            >
-              <Trophy size={20} color="white" />
-              <span className="nav-label">Leaderboard</span>
-            </Link>
+            {user?.role === 'admin' ? (
+              <>
+                <Link 
+                  to="/admin/questions/create" 
+                  className={`nav-item ${isActive('/admin/questions/create') ? 'active' : ''}`}
+                >
+                  <Shield size={20} color="white" />
+                  <span className="nav-label">Create Questions</span>
+                </Link>
+                <Link 
+                  to="/admin/questions" 
+                  className={`nav-item ${isActive('/admin/questions') ? 'active' : ''}`}
+                >
+                  <BookOpen size={20} color="white" />
+                  <span className="nav-label">Manage Questions</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
+                >
+                  <Home size={20} color="white" />
+                  <span className="nav-label">Dashboard</span>
+                </Link>
+                <Link 
+                  to="/practice" 
+                  className={`nav-item ${isActive('/practice') ? 'active' : ''}`}
+                >
+                  <BookOpen size={20} color="white" />
+                  <span className="nav-label">Practice</span>
+                </Link>
+                <Link 
+                  to="/contest" 
+                  className={`nav-item ${isActive('/contest') ? 'active' : ''}`}
+                >
+                  <Flag size={20} color="white" />
+                  <span className="nav-label">Contest</span>
+                </Link>
+                <Link 
+                  to="/challenge" 
+                  className={`nav-item ${isActive('/challenge') ? 'active' : ''}`}
+                >
+                  <Swords size={20} color="white" />
+                  <span className="nav-label">1v1 Challenge</span>
+                </Link>
+                <Link 
+                  to="/leaderboard" 
+                  className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}
+                >
+                  <Trophy size={20} color="white" />
+                  <span className="nav-label">Leaderboard</span>
+                </Link>
+              </>
+            )}
           </nav>
 
           {/* User Section */}
@@ -115,46 +136,69 @@ export default function Layout({ children }) {
 
         <div className="sidebar-section-title">Menu</div>
         <div className="nav-section">
-          <Link 
-            to="/dashboard" 
-            className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
-            onClick={closeSidebar}
-          >
-            <Home size={20} color="white" />
-            <span className="nav-label">Dashboard</span>
-          </Link>
-          <Link 
-            to="/practice" 
-            className={`nav-item ${isActive('/practice') ? 'active' : ''}`}
-            onClick={closeSidebar}
-          >
-            <BookOpen size={20} color="white" />
-            <span className="nav-label">Practice</span>
-          </Link>
-          <Link 
-            to="/contest" 
-            className={`nav-item ${isActive('/contest') ? 'active' : ''}`}
-            onClick={closeSidebar}
-          >
-            <Flag size={20} color="white" />
-            <span className="nav-label">Contest</span>
-          </Link>
-          <Link 
-            to="/challenge" 
-            className={`nav-item ${isActive('/challenge') ? 'active' : ''}`}
-            onClick={closeSidebar}
-          >
-            <Swords size={20} color="white" />
-            <span className="nav-label">1v1 Challenge</span>
-          </Link>
-          <Link 
-            to="/leaderboard" 
-            className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}
-            onClick={closeSidebar}
-          >
-            <Trophy size={20} color="white" />
-            <span className="nav-label">Leaderboard</span>
-          </Link>
+          {user?.role === 'admin' ? (
+            <>
+              <Link 
+                to="/admin/questions/create" 
+                className={`nav-item ${isActive('/admin/questions/create') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <Shield size={20} color="white" />
+                <span className="nav-label">Create Questions</span>
+              </Link>
+              <Link 
+                to="/admin/questions" 
+                className={`nav-item ${isActive('/admin/questions') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <BookOpen size={20} color="white" />
+                <span className="nav-label">Manage Questions</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link 
+                to="/dashboard" 
+                className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <Home size={20} color="white" />
+                <span className="nav-label">Dashboard</span>
+              </Link>
+              <Link 
+                to="/practice" 
+                className={`nav-item ${isActive('/practice') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <BookOpen size={20} color="white" />
+                <span className="nav-label">Practice</span>
+              </Link>
+              <Link 
+                to="/contest" 
+                className={`nav-item ${isActive('/contest') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <Flag size={20} color="white" />
+                <span className="nav-label">Contest</span>
+              </Link>
+              <Link 
+                to="/challenge" 
+                className={`nav-item ${isActive('/challenge') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <Swords size={20} color="white" />
+                <span className="nav-label">1v1 Challenge</span>
+              </Link>
+              <Link 
+                to="/leaderboard" 
+                className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <Trophy size={20} color="white" />
+                <span className="nav-label">Leaderboard</span>
+              </Link>
+            </>
+          )}
         </div>
 
         <div className="sidebar-divider"></div>

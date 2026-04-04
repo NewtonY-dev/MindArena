@@ -191,4 +191,55 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to get leaderboard');
     return data;
   },
+
+  // Admin - Create Question
+  async createQuestion(questionData) {
+    const res = await fetch(`${API_BASE_URL}/questions`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders() 
+      },
+      body: JSON.stringify(questionData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create question');
+    return data;
+  },
+
+  // Admin - Get All Questions
+  async getAllQuestions() {
+    const res = await fetch(`${API_BASE_URL}/questions`, {
+      headers: { ...getAuthHeaders() },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to get questions');
+    return data;
+  },
+
+  // Admin - Update Question
+  async updateQuestion(questionId, questionData) {
+    const res = await fetch(`${API_BASE_URL}/questions/${questionId}`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders() 
+      },
+      body: JSON.stringify(questionData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update question');
+    return data;
+  },
+
+  // Admin - Delete Question
+  async deleteQuestion(questionId) {
+    const res = await fetch(`${API_BASE_URL}/questions/${questionId}`, {
+      method: 'DELETE',
+      headers: { ...getAuthHeaders() },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete question');
+    return data;
+  },
 };

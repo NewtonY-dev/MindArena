@@ -3,9 +3,13 @@ import {
   getQuestionsByGradeAndSubject, 
   getQuestionsByUserSubjects, 
   getQuestionById, 
-  createQuestion 
+  createQuestion,
+  getAllQuestions,
+  updateQuestion,
+  deleteQuestion
 } from "../models/question.model.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import adminMiddleware from "../middleware/adminMiddleware.js";
 
 const router = express.Router();
 
@@ -103,8 +107,8 @@ router.get("/:id/answer", authMiddleware, async (req, res) => {
   }
 });
 
-// Create Question (Admin only - would need admin middleware)
-router.post("/", authMiddleware, async (req, res) => {
+// Create Question (Admin only)
+router.post("/", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { 
       gradeLevelId, 
@@ -139,6 +143,68 @@ router.post("/", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating question:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get All Questions (Admin only)
+router.get("/", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const questions = await getAllQuestions();
+    res.json({ questions });
+  } catch (error) {
+    console.error("Error getting all questions:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Update Question (Admin only)
+router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content, correctAnswer, hint, explanation, difficultyLevel } = req.body;
+    
+    if (!content || !correctAnswer) {
+      return res.status(400).json({ 
+        error: "content and correctAnswer are required" 
+      });
+    }
+    
+    const questionData = {
+      content,
+      correctAnswer,
+      hint,
+      explanation,
+      difficultyLevel: difficultyLevel || 'medium'
+    };
+    
+    const updated = await updateQuestion(id, questionData);
+    
+    if (!updated) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+    
+    res.json({ message: "Question updated successfully" });
+  } catch (error) {
+    console.error("Error updating question:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Delete Question (Admin only)
+router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const deleted = await deleteQuestion(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+    
+    res.json({ message: "Question deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting question:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -8,6 +8,9 @@ import Dashboard from './pages/Dashboard';
 import Practice from './pages/Practice';
 import Contest from './pages/Contest';
 import Leaderboard from './pages/Leaderboard';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminQuestionCreate from './pages/AdminQuestionCreate';
+import AdminManageQuestions from './pages/AdminManageQuestions';
 import Challenge from './pages/Challenge';
 
 function ProtectedRoute({ children }) {
@@ -25,7 +28,8 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" />;
   }
 
-  if (needsProfileSetup) {
+  // Admins don't need profile setup, redirect them to admin dashboard
+  if (needsProfileSetup && user.role == 'user') {
     return <Navigate to="/profile-setup" />;
   }
 
@@ -45,6 +49,10 @@ function ProfileSetupRoute({ children }) {
 
   if (!user) {
     return <Navigate to="/login" />;
+  }
+
+ if (!needsProfileSetup && user.role === 'admin') {
+    return <Navigate to="/admin" />;
   }
 
   // Only show profile setup if it's needed
@@ -67,7 +75,7 @@ function PublicRoute({ children }) {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} />;
   }
 
   return children;
@@ -114,6 +122,21 @@ function AppRoutes() {
       <Route path="/challenge" element={
         <ProtectedRoute>
           <Challenge />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/questions/create" element={
+        <ProtectedRoute>
+          <AdminQuestionCreate />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/questions" element={
+        <ProtectedRoute>
+          <AdminManageQuestions />
         </ProtectedRoute>
       } />
       <Route path="/" element={<Navigate to="/dashboard" />} />

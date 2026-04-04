@@ -141,10 +141,10 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const data = await login(email, password);
       setSuccess(true);
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(data.user.role === 'admin' ? '/admin' : '/dashboard');
       }, 1500);
     } catch (err) {
       console.error('Login error:', err);

@@ -22,10 +22,6 @@ export function AuthProvider({ children }) {
     try {
       const userData = await api.getCurrentUser();
       setUser(userData);
-      // Check if profile needs setup
-      if (!userData.gradeLevelId || !userData.subjectIds || userData.subjectIds.length === 0) {
-        setNeedsProfileSetup(true);
-      }
     } catch (error) {
       localStorage.removeItem('token');
       setUser(null);
@@ -38,11 +34,7 @@ export function AuthProvider({ children }) {
     const data = await api.login(email, password);
     localStorage.setItem('token', data.token);
     setUser(data.user);
-    if (!data.user.gradeLevelId || !data.user.subjectIds || data.user.subjectIds.length === 0) {
-      setNeedsProfileSetup(true);
-    } else {
-      setNeedsProfileSetup(false);
-    }
+    setNeedsProfileSetup(false);
     return data;
   };
 
@@ -50,7 +42,10 @@ export function AuthProvider({ children }) {
     const data = await api.register(email, password);
     localStorage.setItem('token', data.token);
     setUser(data.user);
-    setNeedsProfileSetup(true);
+    // Only students need profile setup after registration
+    if (data.user.role !== 'admin') {
+      setNeedsProfileSetup(true);
+    }
     return data;
   };
 

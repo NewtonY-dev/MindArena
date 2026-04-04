@@ -185,7 +185,7 @@ export const loginUser = async (req, res) => {
     }
 
     // Database is available, proceed with normal login
-    const getUserSql = 'SELECT id, email, password_hash, display_name, points, grade_level_id FROM users WHERE email = ?';
+    const getUserSql = 'SELECT id, email, password_hash, display_name, points, grade_level_id, role FROM users WHERE email = ?';
     
     db.query(getUserSql, [email], async (err, results) => {
       if (err) {
@@ -205,7 +205,7 @@ export const loginUser = async (req, res) => {
       }
 
       const token = jwt.sign(
-        { id: user.id, email: user.email },
+        { id: user.id, email: user.email, role: user.role },
         config.jwtConfig.secret,
         { expiresIn: config.jwtConfig.expiresIn }
       );
@@ -217,7 +217,8 @@ export const loginUser = async (req, res) => {
           email: user.email,
           displayName: user.display_name,
           points: user.points,
-          gradeLevelId: user.grade_level_id
+          gradeLevelId: user.grade_level_id,
+          role: user.role
         },
         token
       });
