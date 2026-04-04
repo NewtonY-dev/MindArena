@@ -8,7 +8,8 @@ import {
   getContestLeaderboard,
   registerForContest,
   unregisterFromContest,
-  getUserContestRegistrations
+  getUserContestRegistrations,
+  finishContest
 } from '../controllers/contestController.js';
 
 const router = express.Router();
@@ -36,5 +37,8 @@ router.delete('/:id/register', authMiddleware, unregisterFromContest);
 
 // Get user's contest registrations (protected route)
 router.get('/registrations/my', authMiddleware, getUserContestRegistrations);
+
+// Finish/complete a contest (protected route)
+router.post('/:id/finish', authMiddleware, finishContest);
 
 export default router;

@@ -100,7 +100,22 @@ export const getQuestionById = (id) => {
 };
 
 export const createQuestion = (questionData) => {
+  console.log('createQuestion model called with:', questionData);
+  
   const { gradeLevelId, subjectId, content, correctAnswer, hint, explanation, difficultyLevel = 'medium', questionType = 'short_answer', options } = questionData;
+  
+  console.log('Extracted fields:', {
+    gradeLevelId,
+    subjectId,
+    content: content?.substring(0, 50) + '...',
+    correctAnswer,
+    hint,
+    explanation,
+    difficultyLevel,
+    questionType,
+    options
+  });
+  
   const sql = `
     INSERT INTO questions (grade_level_id, subject_id, content, question_type, options, correct_answer, hint, explanation, difficulty_level)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -111,27 +126,122 @@ export const createQuestion = (questionData) => {
   const explanationValue = explanation === undefined ? null : explanation;
   const optionsValue = options ? JSON.stringify(options) : null;
   
+  console.log('SQL prepared:', sql);
+  console.log('Parameters for SQL:', [
+    gradeLevelId, 
+    subjectId, 
+    content, 
+    questionType, 
+    optionsValue, 
+    correctAnswer, 
+    hintValue, 
+    explanationValue, 
+    difficultyLevel
+  ]);
+  
   return new Promise((resolve, reject) => {
     connection.query(sql, [gradeLevelId, subjectId, content, questionType, optionsValue, correctAnswer, hintValue, explanationValue, difficultyLevel], (err, results) => {
-      if (err) reject(err);
-      else resolve(results.insertId);
+      if (err) {
+        console.error('Database error in createQuestion:', err);
+        console.error('Error details:', {
+          code: err.code,
+          errno: err.errno,
+          sqlMessage: err.sqlMessage,
+          sqlState: err.sqlState
+        });
+        reject(err);
+      } else {
+        console.log('Question inserted successfully with insertId:', results.insertId);
+        console.log('Full result object:', results);
+        resolve(results.insertId);
+      }
+    });
+  });
+};
+
+export const getPracticeQuestionsOnly = (gradeLevelId, subjectId = null, userId = null) => {
+  console.log('getPracticeQuestionsOnly called with:', { gradeLevelId, subjectId, userId });
+  
+  let sql;
+  let params;
+  
+  if (userId) {
+    // Get questions from user's subjects, excluding contest questions
+    sql = `
+      SELECT DISTINCT q.id, q.content, q.difficulty_level, q.hint,
+             gl.name as grade_level_name, s.name as subject_name,
+             q.question_type, q.options
+      FROM questions q
+      INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
+      INNER JOIN subjects s ON q.subject_id = s.id
+      INNER JOIN user_subjects us ON q.subject_id = us.subject_id
+      LEFT JOIN contest_questions cq ON q.id = cq.question_id
+      WHERE q.grade_level_id = ? AND us.user_id = ? AND cq.question_id IS NULL
+    `;
+    params = [gradeLevelId, userId];
+    
+    if (subjectId) {
+      sql += ` AND q.subject_id = ?`;
+      params.push(subjectId);
+    }
+  } else {
+    // Get all questions for grade level and subject, excluding contest questions
+    sql = `
+      SELECT q.id, q.content, q.difficulty_level, q.hint,
+             gl.name as grade_level_name, s.name as subject_name,
+             q.question_type, q.options
+      FROM questions q
+      INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
+      INNER JOIN subjects s ON q.subject_id = s.id
+      LEFT JOIN contest_questions cq ON q.id = cq.question_id
+      WHERE q.grade_level_id = ? AND cq.question_id IS NULL
+    `;
+    params = [gradeLevelId];
+    
+    if (subjectId) {
+      sql += ` AND q.subject_id = ?`;
+      params.push(subjectId);
+    }
+  }
+  
+  sql += ` ORDER BY q.difficulty_level, RAND() LIMIT 20`;
+  
+  console.log('getPracticeQuestionsOnly SQL:', sql);
+  console.log('getPracticeQuestionsOnly params:', params);
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, params, (err, results) => {
+      if (err) {
+        console.error('getPracticeQuestionsOnly database error:', err);
+        reject(err);
+      } else {
+        console.log('getPracticeQuestionsOnly success:', results.length, 'questions returned');
+        resolve(results);
+      }
     });
   });
 };
 
 export const getAllQuestions = () => {
   const sql = `
-    SELECT q.*, gl.name as grade_level_name, s.name as subject_name
+    SELECT q.*, gl.name as grade_level_name, s.name as subject_name,
+           CASE WHEN cq.question_id IS NOT NULL THEN true ELSE false END as used_in_contests
     FROM questions q
     INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
     INNER JOIN subjects s ON q.subject_id = s.id
+    LEFT JOIN contest_questions cq ON q.id = cq.question_id
     ORDER BY q.id DESC
   `;
   
   return new Promise((resolve, reject) => {
     connection.query(sql, (err, results) => {
-      if (err) reject(err);
-      else resolve(results);
+      if (err) {
+        console.error('getAllQuestions database error:', err);
+        reject(err);
+      } else {
+        console.log('getAllQuestions success:', results.length, 'questions returned');
+        resolve(results);
+      }
     });
   });
 };
@@ -153,6 +263,24 @@ export const updateQuestion = (questionId, questionData) => {
     connection.query(sql, [content, correctAnswer, hintValue, explanationValue, difficultyLevel, questionType, optionsValue, questionId], (err, results) => {
       if (err) reject(err);
       else resolve(results.affectedRows > 0);
+    });
+  });
+};
+
+export const isQuestionUsedInContests = (questionId) => {
+  const sql = `
+    SELECT COUNT(*) as contest_count
+    FROM contest_questions
+    WHERE question_id = ?
+  `;
+  
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [questionId], (err, results) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(results[0].contest_count > 0);
+      }
     });
   });
 };

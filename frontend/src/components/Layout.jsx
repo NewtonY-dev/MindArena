@@ -57,6 +57,13 @@ export default function Layout({ children }) {
             {user?.role === 'admin' ? (
               <>
                 <Link 
+                  to="/admin" 
+                  className={`nav-item ${isActive('/admin') ? 'active' : ''}`}
+                >
+                  <Home size={20} color="white" />
+                  <span className="nav-label">Admin Dashboard</span>
+                </Link>
+                <Link 
                   to="/admin/questions/create" 
                   className={`nav-item ${isActive('/admin/questions/create') ? 'active' : ''}`}
                 >
@@ -69,6 +76,13 @@ export default function Layout({ children }) {
                 >
                   <BookOpen size={20} color="white" />
                   <span className="nav-label">Manage Questions</span>
+                </Link>
+                <Link 
+                  to="/admin/contests" 
+                  className={`nav-item ${isActive('/admin/contests') ? 'active' : ''}`}
+                >
+                  <Flag size={20} color="white" />
+                  <span className="nav-label">Create Contest</span>
                 </Link>
               </>
             ) : (
@@ -139,6 +153,14 @@ export default function Layout({ children }) {
           {user?.role === 'admin' ? (
             <>
               <Link 
+                to="/admin" 
+                className={`nav-item ${isActive('/admin') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <Home size={20} color="white" />
+                <span className="nav-label">Admin Dashboard</span>
+              </Link>
+              <Link 
                 to="/admin/questions/create" 
                 className={`nav-item ${isActive('/admin/questions/create') ? 'active' : ''}`}
                 onClick={closeSidebar}
@@ -153,6 +175,14 @@ export default function Layout({ children }) {
               >
                 <BookOpen size={20} color="white" />
                 <span className="nav-label">Manage Questions</span>
+              </Link>
+              <Link 
+                to="/admin/contests" 
+                className={`nav-item ${isActive('/admin/contests') ? 'active' : ''}`}
+                onClick={closeSidebar}
+              >
+                <Flag size={20} color="white" />
+                <span className="nav-label">Create Contest</span>
               </Link>
             </>
           ) : (

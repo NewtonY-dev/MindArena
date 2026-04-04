@@ -169,9 +169,9 @@ export default function Practice() {
           <div className="no-questions-icon">
             <FiBook size={64} />
           </div>
-          <h2>No Questions Found</h2>
+          <h2>No Practice Questions Found</h2>
           <p>There are no practice questions available for your selected criteria.</p>
-          <p>Please select a different subject or check back later.</p>
+          <p>Practice questions are those not assigned to contests. Try selecting a different subject or check back later.</p>
         </div>
       </div>
     );

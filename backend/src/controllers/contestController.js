@@ -26,20 +26,21 @@ const getContests = async (req, res) => {
     const { status, gradeLevelId, subjectId } = req.query;
     const userGradeLevelId = req.user?.gradeLevelId;
     
-    // Refresh statuses before returning contests
+    console.log('[getContests] Starting with params:', { status, gradeLevelId, subjectId, userGradeLevelId });
+    
     await updateContestStatuses();
     
     let contests;
     
     if (status) {
-      // Filter by status (upcoming, active, passed)
+      console.log('[getContests] Fetching contests by status:', status);
       contests = await getContestsByStatus(
         status, 
         gradeLevelId ? parseInt(gradeLevelId) : userGradeLevelId, 
         50
       );
     } else {
-      // Get all contests with optional filters
+      console.log('[getContests] Fetching all contests');
       contests = await getAllContests({
         gradeLevelId: gradeLevelId ? parseInt(gradeLevelId) : userGradeLevelId,
         subjectId: subjectId ? parseInt(subjectId) : null,
@@ -47,12 +48,20 @@ const getContests = async (req, res) => {
       });
     }
     
-    // Group contests by status for easier frontend handling
+    console.log('[getContests] Raw contests from DB:', contests?.length || 0, 'contests');
+    console.log('[getContests] First contest sample:', contests?.[0] ? JSON.stringify(contests[0], null, 2) : 'No contests');
+    
     const groupedContests = {
       upcoming: contests.filter(c => c.status === 'upcoming'),
       active: contests.filter(c => c.status === 'active'),
       passed: contests.filter(c => c.status === 'passed')
     };
+
+    console.log('[getContests] Grouped counts:', {
+      upcoming: groupedContests.upcoming.length,
+      active: groupedContests.active.length,
+      passed: groupedContests.passed.length
+    });
 
     res.json({
       success: true,
@@ -61,7 +70,7 @@ const getContests = async (req, res) => {
       total: contests.length
     });
   } catch (error) {
-    console.error('Error getting contests:', error);
+    console.error('[getContests] Error getting contests:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get contests'
@@ -187,6 +196,11 @@ const submitContestAnswer = async (req, res) => {
     const { contestId, questionId, answer, timeTaken } = req.body;
     const userId = req.user.id;
     
+    // Ensure timeTaken has a default value
+    const actualTimeTaken = timeTaken !== undefined ? timeTaken : 0;
+    
+    console.log('[submitContestAnswer] Starting - contestId:', contestId, 'questionId:', questionId, 'timeTaken:', actualTimeTaken);
+    
     // Get the correct answer from questions
     const getCorrectAnswerSql = `SELECT correct_answer FROM questions WHERE id = ?`;
     const answerResult = await new Promise((resolve, reject) => {
@@ -197,6 +211,7 @@ const submitContestAnswer = async (req, res) => {
     });
     
     if (answerResult.length === 0) {
+      console.log('[submitContestAnswer] Question not found:', questionId);
       return res.status(404).json({
         success: false,
         error: 'Question not found'
@@ -208,8 +223,10 @@ const submitContestAnswer = async (req, res) => {
     
     // Calculate points (10 base + speed bonus)
     const basePoints = 10;
-    const timeBonus = isCorrect ? Math.max(0, Math.floor((30 - timeTaken) / 3)) : 0;
+    const timeBonus = isCorrect ? Math.max(0, Math.floor((30 - actualTimeTaken) / 3)) : 0;
     const pointsAwarded = isCorrect ? basePoints + timeBonus : 0;
+    
+    console.log('[submitContestAnswer] Answer correct:', isCorrect, 'Points:', pointsAwarded);
     
     // Record the attempt
     await createContestAttempt({
@@ -219,7 +236,7 @@ const submitContestAnswer = async (req, res) => {
       answerGiven: answer,
       isCorrect,
       pointsAwarded,
-      timeTaken
+      timeTaken: actualTimeTaken
     });
     
     // Get participant and update score
@@ -230,18 +247,20 @@ const submitContestAnswer = async (req, res) => {
         correctAnswers: participant.correct_answers + (isCorrect ? 1 : 0),
         totalAnswered: participant.total_answered + 1,
         currentQuestionIndex: participant.current_question_index + 1,
-        timeSpentSeconds: participant.time_spent_seconds + timeTaken
+        timeSpentSeconds: participant.time_spent_seconds + actualTimeTaken
       });
+      console.log('[submitContestAnswer] Updated participant score');
     }
     
     res.json({
       success: true,
       isCorrect,
       pointsAwarded,
-      totalPoints: participant ? participant.score + pointsAwarded : pointsAwarded
+      totalPoints: participant ? participant.score + pointsAwarded : pointsAwarded,
+      correctAnswer: isCorrect ? null : correctAnswer
     });
   } catch (error) {
-    console.error('Error submitting contest answer:', error);
+    console.error('[submitContestAnswer] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to submit answer'
@@ -302,19 +321,24 @@ const getContestLeaderboard = async (req, res) => {
 
 const registerForContest = async (req, res) => {
   try {
-    const { contestId } = req.params;
+    const { id } = req.params;
     const userId = req.user.id;
+    
+    console.log('[registerForContest] Starting - contestId:', id, 'userId:', userId);
     
     await updateContestStatuses();
     
-    const contest = await getContestFromDB(parseInt(contestId));
+    const contest = await getContestFromDB(parseInt(id));
     
     if (!contest) {
+      console.log('[registerForContest] Contest not found:', id);
       return res.status(404).json({
         success: false,
         error: 'Contest not found'
       });
     }
+
+    console.log('[registerForContest] Contest found:', contest.title, 'status:', contest.status);
 
     if (contest.status !== 'upcoming' && contest.status !== 'active') {
       return res.status(400).json({
@@ -324,9 +348,10 @@ const registerForContest = async (req, res) => {
     }
     
     // Check if already registered
-    const existingParticipant = await getContestParticipant(parseInt(contestId), userId);
+    const existingParticipant = await getContestParticipant(parseInt(id), userId);
     
     if (existingParticipant) {
+      console.log('[registerForContest] Already registered');
       return res.status(400).json({
         success: false,
         error: 'Already registered for this contest'
@@ -335,7 +360,7 @@ const registerForContest = async (req, res) => {
     
     // Create participant record (registration only)
     await createContestParticipant({
-      contestId: parseInt(contestId),
+      contestId: parseInt(id),
       userId,
       score: 0,
       correctAnswers: 0,
@@ -344,13 +369,15 @@ const registerForContest = async (req, res) => {
       timeSpentSeconds: 0
     });
     
+    console.log('[registerForContest] Successfully registered');
+    
     res.json({
       success: true,
       message: 'Successfully registered for contest',
       registered: true
     });
   } catch (error) {
-    console.error('Error registering for contest:', error);
+    console.error('[registerForContest] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to register for contest'
@@ -360,24 +387,29 @@ const registerForContest = async (req, res) => {
 
 const unregisterFromContest = async (req, res) => {
   try {
-    const { contestId } = req.params;
+    const { id } = req.params;
     const userId = req.user.id;
+    
+    console.log('[unregisterFromContest] Starting - contestId:', id, 'userId:', userId);
     
     const sql = `DELETE FROM contest_participants WHERE contest_id = ? AND user_id = ? AND score = 0`;
     
     const result = await new Promise((resolve, reject) => {
-      db.query(sql, [parseInt(contestId), userId], (err, results) => {
+      db.query(sql, [parseInt(id), userId], (err, results) => {
         if (err) reject(err);
         else resolve(results);
       });
     });
     
     if (result.affectedRows === 0) {
+      console.log('[unregisterFromContest] Cannot unregister - may have started or not registered');
       return res.status(400).json({
         success: false,
         error: 'Cannot unregister - contest may have already started or not registered'
       });
     }
+    
+    console.log('[unregisterFromContest] Successfully unregistered');
     
     res.json({
       success: true,
@@ -385,7 +417,7 @@ const unregisterFromContest = async (req, res) => {
       registered: false
     });
   } catch (error) {
-    console.error('Error unregistering from contest:', error);
+    console.error('[unregisterFromContest] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to unregister from contest'
@@ -397,16 +429,43 @@ const getUserContestRegistrations = async (req, res) => {
   try {
     const userId = req.user.id;
     
+    console.log('[getUserContestRegistrations] Starting for user:', userId);
+    
     await updateContestStatuses();
     
-    const sql = `
+    // Check what columns exist in contest_participants
+    const checkColumnsSql = `DESCRIBE contest_participants`;
+    const columns = await new Promise((resolve, reject) => {
+      db.query(checkColumnsSql, (err, results) => {
+        if (err) {
+          console.log('[getUserContestRegistrations] Could not describe table:', err.message);
+          resolve([]);
+        } else {
+          console.log('[getUserContestRegistrations] Table columns:', results.map(c => c.Field));
+          resolve(results);
+        }
+      });
+    });
+    
+    const columnNames = columns.map(c => c.Field);
+    const hasCorrectAnswers = columnNames.includes('correct_answers');
+    const hasTotalAnswered = columnNames.includes('total_answered');
+    const hasFinishedAt = columnNames.includes('finished_at');
+    
+    console.log('[getUserContestRegistrations] Has correct_answers:', hasCorrectAnswers);
+    console.log('[getUserContestRegistrations] Has total_answered:', hasTotalAnswered);
+    console.log('[getUserContestRegistrations] Has finished_at:', hasFinishedAt);
+    
+    // Build query based on available columns
+    let sql = `
       SELECT 
         c.*,
         gl.name as grade_level_name,
         s.name as subject_name,
-        cp.score as user_score,
-        cp.correct_answers as user_correct,
-        cp.total_answered as user_answered
+        cp.score as user_score
+        ${hasCorrectAnswers ? ', cp.correct_answers as user_correct' : ''}
+        ${hasTotalAnswered ? ', cp.total_answered as user_answered' : ''}
+        ${hasFinishedAt ? ', cp.finished_at as user_finished_at' : ''}
       FROM contest_participants cp
       INNER JOIN contests c ON cp.contest_id = c.id
       LEFT JOIN grade_levels gl ON c.grade_level_id = gl.id
@@ -415,10 +474,17 @@ const getUserContestRegistrations = async (req, res) => {
       ORDER BY c.start_time DESC
     `;
     
+    console.log('[getUserContestRegistrations] Executing query for user:', userId);
+    
     const registrations = await new Promise((resolve, reject) => {
       db.query(sql, [userId], (err, results) => {
-        if (err) reject(err);
-        else resolve(results);
+        if (err) {
+          console.error('[getUserContestRegistrations] Query error:', err);
+          reject(err);
+        } else {
+          console.log('[getUserContestRegistrations] Found', results?.length || 0, 'registrations');
+          resolve(results);
+        }
       });
     });
     
@@ -431,15 +497,48 @@ const getUserContestRegistrations = async (req, res) => {
         startTime: r.start_time,
         endTime: r.end_time,
         userScore: r.user_score,
-        userCorrect: r.user_correct,
-        userAnswered: r.user_answered
+        userCorrect: r.user_correct || 0,
+        userAnswered: r.user_answered || 0,
+        finishedAt: r.user_finished_at || null
       }))
     });
   } catch (error) {
-    console.error('Error getting contest registrations:', error);
+    console.error('[getUserContestRegistrations] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get contest registrations'
+    });
+  }
+};
+
+const finishContest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    console.log('[finishContest] Marking contest as finished - contestId:', id, 'userId:', userId);
+    
+    // Update participant record with finished_at timestamp
+    const sql = `UPDATE contest_participants SET finished_at = NOW() WHERE contest_id = ? AND user_id = ?`;
+    
+    await new Promise((resolve, reject) => {
+      db.query(sql, [parseInt(id), userId], (err, results) => {
+        if (err) reject(err);
+        else resolve(results);
+      });
+    });
+    
+    console.log('[finishContest] Contest marked as finished');
+    
+    res.json({
+      success: true,
+      message: 'Contest completed successfully'
+    });
+  } catch (error) {
+    console.error('[finishContest] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to finish contest'
     });
   }
 };
@@ -452,5 +551,6 @@ export {
   getContestLeaderboard,
   registerForContest,
   unregisterFromContest,
-  getUserContestRegistrations
+  getUserContestRegistrations,
+  finishContest
 };

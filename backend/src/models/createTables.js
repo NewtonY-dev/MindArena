@@ -18,7 +18,7 @@ import {
   createContestParticipantsTable,
   createContestAttemptsTable
 } from './contest.model.js';
-import { fixContestsTable, fixQuestionsTable } from './fixTables.js';
+import { fixContestsTable, fixQuestionsTable, fixContestParticipantsTable } from './fixTables.js';
 
 export const initializeDatabase = async () => {
   try {
@@ -38,6 +38,7 @@ export const initializeDatabase = async () => {
     await fixContestsTable();
     await createContestQuestionsTable();
     await createContestParticipantsTable();
+    await fixContestParticipantsTable();
     await createContestAttemptsTable();
     console.log('All database tables initialized successfully');
   } catch (error) {

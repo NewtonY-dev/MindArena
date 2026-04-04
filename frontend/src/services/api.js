@@ -144,11 +144,11 @@ export const api = {
     return data;
   },
 
-  async submitContestAnswer(contestId, questionId, answer) {
+  async submitContestAnswer(contestId, questionId, answer, timeTaken = 0) {
     const res = await fetch(`${API_BASE_URL}/contests/submit`, {
       method: 'POST',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contestId, questionId, answer })
+      body: JSON.stringify({ contestId, questionId, answer, timeTaken })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to submit contest answer');
@@ -194,6 +194,16 @@ export const api = {
     return data;
   },
 
+  async finishContest(contestId) {
+    const res = await fetch(`${API_BASE_URL}/contests/${contestId}/finish`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to finish contest');
+    return data;
+  },
+
   // Leaderboard
   async getLeaderboard() {
     const res = await fetch(`${API_BASE_URL}/leaderboard`, {
@@ -206,6 +216,10 @@ export const api = {
 
   // Admin - Create Question
   async createQuestion(questionData) {
+    console.log('API createQuestion called with:', questionData);
+    console.log('API createQuestion URL:', `${API_BASE_URL}/questions`);
+    console.log('API createQuestion auth headers:', getAuthHeaders());
+    
     const res = await fetch(`${API_BASE_URL}/questions`, {
       method: 'POST',
       headers: { 
@@ -214,8 +228,16 @@ export const api = {
       },
       body: JSON.stringify(questionData)
     });
+    
+    console.log('API createQuestion response status:', res.status, res.statusText);
+    
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to create question');
+    console.log('API createQuestion response data:', data);
+    
+    if (!res.ok) {
+      console.error('API createQuestion failed:', data);
+      throw new Error(data.error || 'Failed to create question');
+    }
     return data;
   },
 
@@ -286,6 +308,43 @@ export const api = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete contest');
+    return data;
+  },
+
+  async getAdminContest(contestId) {
+    const res = await fetch(`${API_BASE_URL}/admin/contests/${contestId}`, {
+      headers: { ...getAuthHeaders() },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to get contest');
+    return data;
+  },
+
+  async updateContestQuestions(contestId, questionIds) {
+    const res = await fetch(`${API_BASE_URL}/admin/contests/${contestId}/questions`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders() 
+      },
+      body: JSON.stringify({ questionIds })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update contest questions');
+    return data;
+  },
+
+  async updateContest(contestId, contestData) {
+    const res = await fetch(`${API_BASE_URL}/admin/contests/${contestId}`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders() 
+      },
+      body: JSON.stringify(contestData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update contest');
     return data;
   },
 };

@@ -1,5 +1,5 @@
 import { QuestionForm } from '../components/admin';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiBookOpen } from 'react-icons/fi';
 import './AdminQuestionCreate.css';
 
 export default function AdminQuestionCreate() {

@@ -30,6 +30,8 @@ export default function AdminContests() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [editingContest, setEditingContest] = useState(null);
+  const [activeTab, setActiveTab] = useState('create-contest');
 
   useEffect(() => {
     fetchContests();
@@ -83,7 +85,6 @@ export default function AdminContests() {
   };
 
   const addQuestion = () => {
-    // Validation
     if (!currentQuestion.content.trim()) {
       setError('Question content is required');
       return;
@@ -102,14 +103,13 @@ export default function AdminContests() {
 
     const questionToAdd = {
       ...currentQuestion,
-      id: Date.now(), // temporary ID
+      id: Date.now(),
       gradeLevelId: formData.gradeLevelId,
       subjectId: formData.subjectId
     };
 
     setNewQuestions(prev => [...prev, questionToAdd]);
     
-    // Reset current question
     setCurrentQuestion({
       content: '',
       questionType: 'multiple_choice',
@@ -138,7 +138,6 @@ export default function AdminContests() {
     setError('');
     setSuccess('');
 
-    // Validation
     if (!formData.title || !formData.startTime || !formData.endTime) {
       setError('Title, start time, and end time are required');
       return;
@@ -155,7 +154,6 @@ export default function AdminContests() {
     }
 
     try {
-      // First create all questions
       const createdQuestionIds = [];
       for (const question of newQuestions) {
         const questionData = {
@@ -173,7 +171,6 @@ export default function AdminContests() {
         createdQuestionIds.push(result.questionId || result.id);
       }
 
-      // Then create contest with question IDs
       const contestData = {
         title: formData.title,
         description: formData.description,
@@ -222,16 +219,144 @@ export default function AdminContests() {
     }
   };
 
+  const handleEdit = async (contest) => {
+    setEditingContest(contest);
+    setFormData({
+      title: contest.title,
+      description: contest.description || '',
+      gradeLevelId: contest.grade_level_id || '',
+      subjectId: contest.subject_id || '',
+      timePerQuestion: contest.time_per_question || 30,
+      startTime: contest.start_time ? new Date(contest.start_time).toISOString().slice(0, 16) : '',
+      endTime: contest.end_time ? new Date(contest.end_time).toISOString().slice(0, 16) : ''
+    });
+    
+    try {
+      const data = await api.getAdminContest(contest.id);
+      if (data.questions && data.questions.length > 0) {
+        const loadedQuestions = data.questions.map((q, index) => ({
+          id: `existing-${q.id}`,
+          dbId: q.id,
+          content: q.content,
+          questionType: q.question_type || 'multiple_choice',
+          correctAnswer: q.correct_answer,
+          hint: q.hint || '',
+          difficultyLevel: q.difficulty_level || 'medium',
+          options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : ['', '', '', ''],
+          isExisting: true
+        }));
+        setNewQuestions(loadedQuestions);
+      } else {
+        setNewQuestions([]);
+      }
+    } catch (err) {
+      console.error('Error loading contest questions:', err);
+      setNewQuestions([]);
+    }
+    
+    setShowCreateForm(true);
+    window.scrollTo(0, 0);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!formData.title || !formData.startTime || !formData.endTime) {
+      setError('Title, start time, and end time are required');
+      return;
+    }
+
+    if (new Date(formData.startTime) >= new Date(formData.endTime)) {
+      setError('End time must be after start time');
+      return;
+    }
+
+    try {
+      const contestData = {
+        title: formData.title,
+        description: formData.description,
+        gradeLevelId: formData.gradeLevelId ? parseInt(formData.gradeLevelId) : null,
+        subjectId: formData.subjectId ? parseInt(formData.subjectId) : null,
+        questionCount: newQuestions.length,
+        timePerQuestion: parseInt(formData.timePerQuestion) || 30,
+        startTime: formData.startTime,
+        endTime: formData.endTime
+      };
+
+      await api.updateContest(editingContest.id, contestData);
+      
+      const allQuestionIds = [];
+      const newQuestionsToCreate = [];
+      
+      for (const q of newQuestions) {
+        if (q.isExisting && q.dbId) {
+          allQuestionIds.push(q.dbId);
+        } else {
+          newQuestionsToCreate.push(q);
+        }
+      }
+      
+      for (const question of newQuestionsToCreate) {
+        const questionData = {
+          content: question.content,
+          correctAnswer: question.correctAnswer,
+          hint: question.hint,
+          difficultyLevel: question.difficultyLevel,
+          questionType: question.questionType,
+          gradeLevelId: formData.gradeLevelId ? parseInt(formData.gradeLevelId) : null,
+          subjectId: formData.subjectId ? parseInt(formData.subjectId) : null,
+          options: question.questionType === 'multiple_choice' ? question.options.filter(o => o.trim()) : null
+        };
+        
+        const result = await api.createQuestion(questionData);
+        allQuestionIds.push(result.questionId || result.id);
+      }
+      
+      await api.updateContestQuestions(editingContest.id, allQuestionIds);
+      
+      setSuccess('Contest and questions updated successfully!');
+      setFormData({
+        title: '',
+        description: '',
+        gradeLevelId: '',
+        subjectId: '',
+        timePerQuestion: 30,
+        startTime: '',
+        endTime: ''
+      });
+      setEditingContest(null);
+      setNewQuestions([]);
+      setShowCreateForm(false);
+      fetchContests();
+    } catch (err) {
+      console.error('Error updating contest:', err);
+      setError(err.message || 'Failed to update contest');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingContest(null);
+    setFormData({
+      title: '',
+      description: '',
+      gradeLevelId: '',
+      subjectId: '',
+      timePerQuestion: 30,
+      startTime: '',
+      endTime: ''
+    });
+    setNewQuestions([]);
+    setShowCreateForm(false);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active':
-        return 'status-active';
-      case 'upcoming':
-        return 'status-upcoming';
-      case 'passed':
-        return 'status-passed';
-      default:
-        return '';
+      case 'active': return 'status-active';
+      case 'upcoming': return 'status-upcoming';
+      case 'passed': return 'status-passed';
+      default: return '';
     }
   };
 
@@ -261,11 +386,6 @@ export default function AdminContests() {
           <p>Create and manage contests for students</p>
         </div>
 
-        {/* Back Link */}
-        <Link to="/admin" className="back-link">
-          <FiArrowLeft /> Back to Dashboard
-        </Link>
-
         {/* Messages */}
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}
@@ -280,11 +400,11 @@ export default function AdminContests() {
           </button>
         </div>
 
-        {/* Create Form */}
+        {/* Create/Edit Form */}
         {showCreateForm && (
           <div className="contest-form-container">
-            <h2>Create New Contest</h2>
-            <form onSubmit={handleSubmit} className="contest-form">
+            <h2>{editingContest ? 'Edit Contest' : 'Create New Contest'}</h2>
+            <form onSubmit={editingContest ? handleUpdate : handleSubmit} className="contest-form">
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="title">Contest Title *</label>
@@ -408,9 +528,8 @@ export default function AdminContests() {
 
               {/* Question Creation */}
               <div className="question-selection-section">
-                <h3><FiPlus /> Create Questions for Contest</h3>
+                <h3><FiPlus /> {editingContest ? 'Manage Contest Questions' : 'Create Questions for Contest'}</h3>
                 
-                {/* Added Questions List */}
                 {newQuestions.length > 0 && (
                   <div className="added-questions">
                     <h4>Added Questions ({newQuestions.length})</h4>
@@ -438,7 +557,6 @@ export default function AdminContests() {
                   </div>
                 )}
 
-                {/* New Question Form */}
                 <div className="new-question-form">
                   <h4>Add New Question</h4>
                   
@@ -478,7 +596,6 @@ export default function AdminContests() {
                     />
                   </div>
 
-                  {/* Options for Multiple Choice */}
                   {currentQuestion.questionType === 'multiple_choice' && (
                     <div className="options-section">
                       <label>Answer Options (at least 2 required)</label>
@@ -496,7 +613,6 @@ export default function AdminContests() {
                     </div>
                   )}
 
-                  {/* Correct Answer */}
                   <div className="form-group">
                     <label>
                       Correct Answer *
@@ -551,8 +667,11 @@ export default function AdminContests() {
               </div>
 
               <div className="form-actions">
+                <button type="button" className="cancel-button" onClick={handleCancelEdit}>
+                  Cancel
+                </button>
                 <button type="submit" className="submit-button">
-                  <FiSave /> Create Contest with {newQuestions.length} Questions
+                  <FiSave /> {editingContest ? `Update Contest (${newQuestions.length} Questions)` : `Create Contest${newQuestions.length > 0 ? ` with ${newQuestions.length} Questions` : ''}`}
                 </button>
               </div>
             </form>
@@ -613,7 +732,11 @@ export default function AdminContests() {
                   </div>
                   
                   <div className="contest-actions-row">
-                    <button className="icon-button edit" title="Edit Contest">
+                    <button 
+                      className="icon-button edit" 
+                      title="Edit Contest"
+                      onClick={() => handleEdit(contest)}
+                    >
                       <FiEdit2 />
                     </button>
                     <button 

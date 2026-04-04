@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FiPlusCircle, FiList, FiArrowRight, FiBookOpen, FiLayers, FiCalendar, FiPlusSquare } from 'react-icons/fi';
+import { FiPlusCircle, FiArrowRight, FiLayers, FiPlusSquare, FiList, FiCalendar, FiUsers, FiBookOpen } from 'react-icons/fi';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -24,6 +24,26 @@ export default function AdminDashboard() {
             <div className="stat-info">
               <span className="stat-value">Questions</span>
               <span className="stat-label">Manage Content</span>
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <div className="stat-icon">
+              <FiCalendar size={24} />
+            </div>
+            <div className="stat-info">
+              <span className="stat-value">Contests</span>
+              <span className="stat-label">Active Events</span>
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <div className="stat-icon">
+              <FiUsers size={24} />
+            </div>
+            <div className="stat-info">
+              <span className="stat-value">Users</span>
+              <span className="stat-label">Platform Users</span>
             </div>
           </div>
         </div>

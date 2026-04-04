@@ -25,8 +25,10 @@ export default function QuestionForm({ onSuccess }) {
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (field, value) => {
+    console.log('QuestionForm handleChange:', { field, value });
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
+      console.log('QuestionForm formData updated:', newData);
       // Reset correct answer and options when question type changes
       if (field === 'questionType') {
         newData.correctAnswer = '';
@@ -56,6 +58,7 @@ export default function QuestionForm({ onSuccess }) {
   };
 
   const validate = () => {
+    console.log('QuestionForm validate called with formData:', formData);
     const newErrors = {};
 
     if (!formData.gradeLevelId) {
@@ -83,21 +86,25 @@ export default function QuestionForm({ onSuccess }) {
       }
     }
 
+    console.log('QuestionForm validation errors:', newErrors);
     return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('QuestionForm handleSubmit called');
     setSubmitError('');
     setSuccessMessage('');
 
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
+      console.log('QuestionForm validation failed:', validationErrors);
       setErrors(validationErrors);
       return;
     }
 
     setSaving(true);
+    console.log('QuestionForm preparing payload...');
 
     try {
       const payload = {
@@ -112,7 +119,10 @@ export default function QuestionForm({ onSuccess }) {
         options: formData.questionType === 'multiple_choice' ? formData.options : undefined
       };
 
-      await api.createQuestion(payload);
+      console.log('QuestionForm sending payload:', payload);
+      const response = await api.createQuestion(payload);
+      console.log('QuestionForm API response:', response);
+      
       setSuccessMessage('Question created successfully!');
       
       setFormData({
@@ -129,6 +139,7 @@ export default function QuestionForm({ onSuccess }) {
 
       if (onSuccess) onSuccess();
     } catch (err) {
+      console.error('QuestionForm error:', err);
       setSubmitError(err.message || 'Failed to create question. Please try again.');
     } finally {
       setSaving(false);

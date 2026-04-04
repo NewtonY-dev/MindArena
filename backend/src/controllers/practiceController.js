@@ -48,27 +48,29 @@ export const getQuestions = async (req, res) => {
           let params;
           
           if (subjectId) {
-            // Filter by specific subject
+            // Filter by specific subject - exclude contest questions
             questionsSql = `
-              SELECT id, content, difficulty_level, hint
-              FROM questions 
-              WHERE grade_level_id = ? AND subject_id = ?
-              ORDER BY difficulty_level, RAND()
+              SELECT q.id, q.content, q.difficulty_level, q.hint
+              FROM questions q
+              LEFT JOIN contest_questions cq ON q.id = cq.question_id
+              WHERE q.grade_level_id = ? AND q.subject_id = ? AND cq.question_id IS NULL
+              ORDER BY q.difficulty_level, RAND()
               LIMIT 20
             `;
             params = [defaultGradeLevelId, subjectId];
-            console.log('Fetching questions for default grade:', defaultGradeLevelId, 'subject:', subjectId);
+            console.log('Fetching PRACTICE questions for default grade:', defaultGradeLevelId, 'subject:', subjectId);
           } else {
-            // Get all questions for default grade level
+            // Get all practice questions for default grade level - exclude contest questions
             questionsSql = `
-              SELECT id, content, difficulty_level, hint
-              FROM questions 
-              WHERE grade_level_id = ?
-              ORDER BY difficulty_level, RAND()
+              SELECT q.id, q.content, q.difficulty_level, q.hint
+              FROM questions q
+              LEFT JOIN contest_questions cq ON q.id = cq.question_id
+              WHERE q.grade_level_id = ? AND cq.question_id IS NULL
+              ORDER BY q.difficulty_level, RAND()
               LIMIT 20
             `;
             params = [defaultGradeLevelId];
-            console.log('Fetching questions for default grade:', defaultGradeLevelId);
+            console.log('Fetching PRACTICE questions for default grade:', defaultGradeLevelId);
           }
           
           db.query(questionsSql, params, (err, questionResults) => {
@@ -102,28 +104,30 @@ export const getQuestions = async (req, res) => {
         let params;
         
         if (subjectId) {
-          // Filter by specific subject
+          // Filter by specific subject - exclude contest questions
           questionsSql = `
-            SELECT id, content, difficulty_level, hint
-            FROM questions 
-            WHERE grade_level_id = ? AND subject_id = ?
-            ORDER BY difficulty_level, RAND()
+            SELECT q.id, q.content, q.difficulty_level, q.hint
+            FROM questions q
+            LEFT JOIN contest_questions cq ON q.id = cq.question_id
+            WHERE q.grade_level_id = ? AND q.subject_id = ? AND cq.question_id IS NULL
+            ORDER BY q.difficulty_level, RAND()
             LIMIT 20
           `;
           params = [gradeLevelId, subjectId];
-          console.log('Fetching questions for grade:', gradeLevelId, 'subject:', subjectId);
+          console.log('Fetching PRACTICE questions for grade:', gradeLevelId, 'subject:', subjectId);
         } else {
-          // Get questions from all user's subjects
+          // Get questions from all user's subjects - exclude contest questions
           questionsSql = `
             SELECT DISTINCT q.id, q.content, q.difficulty_level, q.hint
             FROM questions q
             INNER JOIN user_subjects us ON q.subject_id = us.subject_id
-            WHERE q.grade_level_id = ? AND us.user_id = ?
+            LEFT JOIN contest_questions cq ON q.id = cq.question_id
+            WHERE q.grade_level_id = ? AND us.user_id = ? AND cq.question_id IS NULL
             ORDER BY q.difficulty_level, RAND()
             LIMIT 20
           `;
           params = [gradeLevelId, userId];
-          console.log('Fetching questions for grade:', gradeLevelId, 'user:', userId);
+          console.log('Fetching PRACTICE questions for grade:', gradeLevelId, 'user:', userId);
         }
         
         db.query(questionsSql, params, (err, questionResults) => {
@@ -136,13 +140,14 @@ export const getQuestions = async (req, res) => {
           console.log('Questions query results:', questionResults.length, 'questions found');
           
           if (questionResults.length === 0) {
-            console.log('No questions found for user subjects, trying all questions for grade level');
-            // Fallback to all questions for the grade level
+            console.log('No questions found for user subjects, trying all PRACTICE questions for grade level');
+            // Fallback to all practice questions for the grade level - exclude contest questions
             const fallbackSql = `
-              SELECT id, content, difficulty_level, hint
-              FROM questions 
-              WHERE grade_level_id = ?
-              ORDER BY difficulty_level, RAND()
+              SELECT q.id, q.content, q.difficulty_level, q.hint
+              FROM questions q
+              LEFT JOIN contest_questions cq ON q.id = cq.question_id
+              WHERE q.grade_level_id = ? AND cq.question_id IS NULL
+              ORDER BY q.difficulty_level, RAND()
               LIMIT 20
             `;
             

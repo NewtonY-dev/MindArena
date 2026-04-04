@@ -286,8 +286,15 @@ export const updateContest = (id, contestData) => {
   
   return new Promise((resolve, reject) => {
     db.query(sql, [
-      title, description, gradeLevelId, subjectId, questionCount,
-      timePerQuestion, startTime, endTime, id
+      title ?? null, 
+      description ?? null, 
+      gradeLevelId ?? null, 
+      subjectId ?? null, 
+      questionCount ?? null,
+      timePerQuestion ?? null, 
+      startTime ?? null, 
+      endTime ?? null, 
+      id
     ], (err, results) => {
       if (err) reject(err);
       else resolve(results.affectedRows > 0);
@@ -355,20 +362,37 @@ export const getContestQuestions = (contestId) => {
 export const refreshContestStatus = () => {
   const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
   
-  const sql = `
-    UPDATE contests 
-    SET status = CASE 
-      WHEN end_time < ? THEN 'passed'
-      WHEN start_time <= ? AND end_time >= ? THEN 'active'
-      ELSE 'upcoming'
-    END
-    WHERE status != 'passed' OR (status = 'passed' AND end_time >= ?)
-  `;
-  
   return new Promise((resolve, reject) => {
-    db.query(sql, [now, now, now, now], (err, results) => {
-      if (err) reject(err);
-      else resolve(results.affectedRows);
+    // First, trim whitespace from status values
+    db.query(`UPDATE contests SET status = TRIM(status)`, (err) => {
+      if (err) {
+        console.log('Could not trim status values:', err.message);
+      }
+      
+      // Now fix any invalid status values
+      db.query(`UPDATE contests SET status = 'upcoming' WHERE status NOT IN ('upcoming', 'active', 'passed')`, (err, result) => {
+        if (err) {
+          console.log('Could not pre-fix status values:', err.message);
+        } else if (result && result.affectedRows > 0) {
+          console.log(`Fixed ${result.affectedRows} contest status values`);
+        }
+        
+        // Now run the refresh
+        const sql = `
+          UPDATE contests 
+          SET status = CASE 
+            WHEN end_time < ? THEN 'passed'
+            WHEN start_time <= ? AND end_time >= ? THEN 'active'
+            ELSE 'upcoming'
+          END
+          WHERE status != 'passed' OR (status = 'passed' AND end_time >= ?)
+        `;
+        
+        db.query(sql, [now, now, now, now], (err, results) => {
+          if (err) reject(err);
+          else resolve(results.affectedRows);
+        });
+      });
     });
   });
 };

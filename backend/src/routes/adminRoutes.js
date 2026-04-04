@@ -1,4 +1,5 @@
 import express from "express";
+import db from "../config/db.js";
 import { 
   getUsersByGradeLevel, 
   getTopUsersByPoints, 
@@ -246,8 +247,8 @@ router.post("/contests", async (req, res) => {
       subjectId: subjectId || null,
       questionCount: questionCount || 10,
       timePerQuestion: timePerQuestion || 30,
-      startTime,
-      endTime,
+      startTime: new Date(startTime).toISOString().slice(0, 19).replace('T', ' '),
+      endTime: new Date(endTime).toISOString().slice(0, 19).replace('T', ' '),
       createdBy: req.user.id
     };
     
@@ -298,8 +299,8 @@ router.put("/contests/:contestId", async (req, res) => {
       subjectId,
       questionCount,
       timePerQuestion,
-      startTime,
-      endTime
+      startTime: startTime ? new Date(startTime).toISOString().slice(0, 19).replace('T', ' ') : undefined,
+      endTime: endTime ? new Date(endTime).toISOString().slice(0, 19).replace('T', ' ') : undefined
     };
     
     const updated = await updateContest(parseInt(contestId), contestData);
@@ -374,6 +375,46 @@ router.post("/contests/refresh-status", async (req, res) => {
     });
   } catch (error) {
     console.error("Error refreshing contest statuses:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Update Contest Questions (Admin)
+router.put("/contests/:contestId/questions", async (req, res) => {
+  try {
+    const { contestId } = req.params;
+    const { questionIds } = req.body;
+    
+    if (!Array.isArray(questionIds)) {
+      return res.status(400).json({ error: "questionIds must be an array" });
+    }
+    
+    // Clear existing questions and assign new ones
+    await db.promise().query('DELETE FROM contest_questions WHERE contest_id = ?', [contestId]);
+    
+    if (questionIds.length > 0) {
+      const values = questionIds.map((qid, index) => [parseInt(contestId), parseInt(qid), index + 1]);
+      const placeholders = values.map(() => '(?, ?, ?)').join(', ');
+      const flatValues = values.flat();
+      
+      await db.promise().query(
+        `INSERT INTO contest_questions (contest_id, question_id, question_order) VALUES ${placeholders}`,
+        flatValues
+      );
+    }
+    
+    // Update question count
+    await db.promise().query(
+      'UPDATE contests SET question_count = ? WHERE id = ?',
+      [questionIds.length, contestId]
+    );
+    
+    res.json({ 
+      message: "Contest questions updated successfully",
+      questionCount: questionIds.length
+    });
+  } catch (error) {
+    console.error("Error updating contest questions:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

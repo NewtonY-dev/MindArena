@@ -89,6 +89,38 @@ export const fixContestsTable = () => {
         });
       });
     });
+  }).then(() => {
+    // Fix any invalid status values by first converting to VARCHAR, then cleaning, then back to ENUM
+    return new Promise((resolve) => {
+      // Step 1: Change status to VARCHAR to allow fixing
+      db.query(`ALTER TABLE contests MODIFY COLUMN status VARCHAR(50)`, (err) => {
+        if (err) {
+          console.log('Could not modify status to VARCHAR:', err.message);
+          resolve();
+          return;
+        }
+        
+        // Step 2: Trim and fix status values
+        db.query(`UPDATE contests SET status = TRIM(status)`, (err) => {
+          if (err) console.log('Could not trim status:', err.message);
+          
+          db.query(`UPDATE contests SET status = 'upcoming' WHERE status NOT IN ('upcoming', 'active', 'passed') OR status IS NULL`, (err, result) => {
+            if (err) {
+              console.log('Could not fix invalid status values:', err.message);
+            } else if (result && result.affectedRows > 0) {
+              console.log(`Fixed ${result.affectedRows} invalid status values`);
+            }
+            
+            // Step 3: Change back to ENUM
+            db.query(`ALTER TABLE contests MODIFY COLUMN status ENUM('upcoming', 'active', 'passed') DEFAULT 'upcoming'`, (err) => {
+              if (err) console.log('Could not modify status back to ENUM:', err.message);
+              else console.log('Status column fixed and converted back to ENUM');
+              resolve();
+            });
+          });
+        });
+      });
+    });
   });
 };
 
@@ -102,4 +134,14 @@ export const fixQuestionsTable = () => {
   });
 };
 
-export default { fixContestsTable, fixQuestionsTable };
+export const fixContestParticipantsTable = () => {
+  return fixTable('contest_participants', {
+    correct_answers: 'INT DEFAULT 0',
+    total_answered: 'INT DEFAULT 0',
+    current_question_index: 'INT DEFAULT 0',
+    time_spent_seconds: 'INT DEFAULT 0',
+    finished_at: 'DATETIME NULL'
+  });
+};
+
+export default { fixContestsTable, fixQuestionsTable, fixContestParticipantsTable };

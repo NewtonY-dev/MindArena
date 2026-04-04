@@ -18,6 +18,8 @@ export default function Contest() {
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const [activeTab, setActiveTab] = useState('available');
   const [registeredContests, setRegisteredContests] = useState(new Set());
+  const [completedContests, setCompletedContests] = useState(new Set());
+  const [modal, setModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null, showCancel: false });
   const { refreshUser } = useAuth();
 
   useEffect(() => {
@@ -28,8 +30,12 @@ export default function Contest() {
   const loadUserRegistrations = async () => {
     try {
       const data = await api.getUserContestRegistrations();
-      const registeredIds = new Set(data.registrations || []);
+      // Extract contestId from registration objects
+      const registeredIds = new Set((data.registrations || []).map(r => r.contestId || r.contest_id || r.id));
+      // Extract completed contests (those with finished_at)
+      const completedIds = new Set((data.registrations || []).filter(r => r.finishedAt || r.finished_at).map(r => r.contestId || r.contest_id || r.id));
       setRegisteredContests(registeredIds);
+      setCompletedContests(completedIds);
     } catch (error) {
       console.error('Failed to load user registrations:', error);
     }
@@ -51,62 +57,80 @@ export default function Contest() {
   }, [contestStarted, timeLeft]);
 
   const loadContests = async () => {
+    console.log('[Contest.jsx] loadContests: Starting...');
     setLoading(true);
     try {
-      const response = await api.get('/contests');
-      setContests(response.data.contests || []);
+      console.log('[Contest.jsx] loadContests: Calling API getContests');
+      const response = await api.getContests();
+      console.log('[Contest.jsx] loadContests: API response:', response);
+      console.log('[Contest.jsx] loadContests: Contests count:', response.contests?.length || 0);
+      console.log('[Contest.jsx] loadContests: Grouped:', response.grouped);
+      setContests(response.contests || []);
     } catch (error) {
-      console.error('Failed to load contests:', error);
+      console.error('[Contest.jsx] loadContests: Failed to load contests:', error);
+      console.error('[Contest.jsx] loadContests: Error response:', error.response?.data);
     } finally {
       setLoading(false);
     }
   };
 
-  const startContest = (contest) => {
-    setActiveContest(contest);
-    setContestStarted(true);
-    setTimeLeft(contest.duration * 60); // Convert to seconds
-    loadContestQuestions(contest);
-  };
-
-  const loadContestQuestions = async (contest) => {
+  const startContest = async (contest) => {
+    // Check if contest is already completed
+    if (isContestCompleted(contest.id)) {
+      setModal({ 
+        isOpen: true, 
+        title: 'Contest Already Completed', 
+        message: 'You have already completed this contest. Check the "Past" tab to see your results.', 
+        onConfirm: () => setModal(m => ({ ...m, isOpen: false })) 
+      });
+      return;
+    }
+    
+    console.log('[Contest.jsx] startContest: Starting contest:', contest.id);
     try {
-      // Load questions based on subject and difficulty
-      const subjectMap = {
-        'Mathematics': 1,
-        'Science': 2,
-        'General': null
-      };
+      const response = await api.startContest(contest.id);
+      console.log('[Contest.jsx] startContest: API response:', response);
       
-      const subjectId = subjectMap[contest.subject] || null;
-      const data = await api.getQuestions(subjectId);
-      
-      // Filter by difficulty if needed
-      let filteredQuestions = data.questions || [];
-      if (contest.difficulty !== 'all') {
-        filteredQuestions = filteredQuestions.filter(
-          q => q.difficultyLevel === contest.difficulty
-        );
+      if (!response.success) {
+        setModal({ isOpen: true, title: 'Error', message: response.error || 'Failed to start contest', onConfirm: () => setModal(m => ({ ...m, isOpen: false })) });
+        return;
       }
       
-      // Take only the number of questions needed
-      setQuestions(filteredQuestions.slice(0, contest.questionCount));
+      setActiveContest({
+        id: contest.id,
+        title: response.contest.title,
+        description: response.contest.description,
+        timePerQuestion: response.contest.timePerQuestion,
+        questionCount: response.contest.questionCount
+      });
+      setQuestions(response.questions || []);
+      setContestStarted(true);
+      setCurrentIndex(response.contest.currentQuestion || 0);
+      const totalTime = (response.questions?.length || response.contest.questionCount) * response.contest.timePerQuestion;
+      setTimeLeft(totalTime);
     } catch (error) {
-      console.error('Failed to load contest questions:', error);
+      console.error('[Contest.jsx] startContest: Failed:', error);
+      setModal({ isOpen: true, title: 'Error', message: error.message || 'Failed to start contest. Please try again.', onConfirm: () => setModal(m => ({ ...m, isOpen: false })) });
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!answer.trim() || !questions[currentIndex]) return;
+    if (!answer.trim() || !questions[currentIndex] || !activeContest) return;
 
     setSubmitting(true);
     try {
-      const result = await api.submitAnswer(questions[currentIndex].id, answer);
+      // Calculate time taken for this question (time per question - time left for this question)
+      const timePerQuestion = activeContest.timePerQuestion || 30;
+      const timeTaken = timePerQuestion - (timeLeft % timePerQuestion || timePerQuestion);
+      
+      console.log('[Contest.jsx] handleSubmit: Submitting answer for contest:', activeContest.id, 'timeTaken:', timeTaken);
+      const result = await api.submitContestAnswer(activeContest.id, questions[currentIndex].id, answer, timeTaken);
+      console.log('[Contest.jsx] handleSubmit: Result:', result);
       setFeedback(result);
       await refreshUser();
     } catch (error) {
-      console.error('Failed to submit answer:', error);
+      console.error('[Contest.jsx] handleSubmit: Failed:', error);
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +154,9 @@ export default function Contest() {
     }
   };
 
-  const handleContestEnd = () => {
+  const handleContestEnd = async () => {
+    const finishedContestId = activeContest?.id;
+    
     setContestStarted(false);
     setActiveContest(null);
     setQuestions([]);
@@ -138,7 +164,23 @@ export default function Contest() {
     setAnswer('');
     setFeedback(null);
     setTimeLeft(null);
-    alert('Contest has ended! Thanks for participating.');
+    
+    // Mark contest as completed in backend
+    if (finishedContestId) {
+      try {
+        await api.finishContest(finishedContestId);
+        setCompletedContests(prev => new Set([...prev, finishedContestId]));
+      } catch (error) {
+        console.error('Failed to finish contest:', error);
+      }
+    }
+    
+    setModal({ 
+      isOpen: true, 
+      title: 'Thank You!', 
+      message: 'Thank you for your participation! You have completed this contest.', 
+      onConfirm: () => setModal(m => ({ ...m, isOpen: false })) 
+    });
   };
 
   const formatTime = (seconds) => {
@@ -168,13 +210,16 @@ export default function Contest() {
       }
     } catch (error) {
       console.error('Failed to update registration:', error);
-      // Show error message to user
-      alert(error.message || 'Failed to update registration');
+      setModal({ isOpen: true, title: 'Error', message: error.message || 'Failed to update registration', onConfirm: () => setModal(m => ({ ...m, isOpen: false })) });
     }
   };
 
   const isRegistered = (contestId) => {
     return registeredContests.has(contestId);
+  };
+
+  const isContestCompleted = (contestId) => {
+    return completedContests.has(contestId);
   };
 
   const currentQuestion = questions[currentIndex];
@@ -368,7 +413,7 @@ export default function Contest() {
           <div className="header-stat-pill">
             <FiFlag size={18} />
             <span className="header-stat-value">
-              {filterByDifficulty(contests.filter(c => c.status === 'active')).length}
+              {filterByDifficulty(contests.filter(c => c.status === 'active' && !isContestCompleted(c.id))).length}
             </span>
             <span className="header-stat-label">Available</span>
           </div>
@@ -417,7 +462,7 @@ export default function Contest() {
           <FiFlag size={20} />
           <span className="tab-label">Available</span>
           <span className="tab-count">
-            {filterByDifficulty(contests.filter(c => c.status === 'active')).length}
+            {filterByDifficulty(contests.filter(c => c.status === 'active' && !isContestCompleted(c.id))).length}
           </span>
         </button>
         <button 
@@ -445,16 +490,16 @@ export default function Contest() {
       {/* Contests based on active tab */}
       {activeTab === 'available' && (
         <>
-          {filterByDifficulty(contests.filter(c => c.status === 'active')).length > 0 ? (
+          {filterByDifficulty(contests.filter(c => c.status === 'active' && !isContestCompleted(c.id))).length > 0 ? (
             <div className="contests-grid">
-              {filterByDifficulty(contests.filter(c => c.status === 'active')).map((contest) => (
+              {filterByDifficulty(contests.filter(c => c.status === 'active' && !isContestCompleted(c.id))).map((contest) => (
                 <div key={contest.id} className="contest-card">
                   <div className="contest-card-header">
                     <div className="contest-icon-wrapper">
                       <FiFlag size={28} />
                     </div>
-                    <span className={`difficulty-tag ${contest.difficulty}`}>
-                      {contest.difficulty}
+                    <span className={`difficulty-tag ${contest.grade_level_name?.toLowerCase() || 'all'}`}>
+                      {contest.grade_level_name || 'All Levels'}
                     </span>
                   </div>
                   <h3 className="contest-title">{contest.title}</h3>
@@ -462,35 +507,32 @@ export default function Contest() {
                   <div className="contest-details">
                     <div className="contest-detail">
                       <FiBook size={16} />
-                      <span>{contest.subject}</span>
+                      <span>{contest.subject_name || 'General'}</span>
                     </div>
                     <div className="contest-detail">
                       <FiClock size={16} />
-                      <span>{contest.duration} min</span>
+                      <span>{Math.ceil((contest.time_per_question * contest.question_count)/60)} min</span>
                     </div>
                     <div className="contest-detail">
                       <FiLayers size={16} />
-                      <span>{contest.questionCount} questions</span>
+                      <span>{contest.question_count} questions</span>
                     </div>
                     <div className="contest-detail prize">
                       <FiAward size={16} />
-                      <span>{contest.prize}</span>
+                      <span>{contest.time_per_question}s per question</span>
                     </div>
                   </div>
                   <div className="contest-dates">
                     <div className="contest-date">
                       <span className="date-label">Start:</span>
-                      <span className="date-value">{new Date(contest.startDate).toLocaleDateString()}</span>
+                      <span className="date-value">{contest.start_time ? new Date(contest.start_time).toLocaleDateString() : 'N/A'}</span>
                     </div>
                     <div className="contest-date">
                       <span className="date-label">End:</span>
-                      <span className="date-value">{new Date(contest.endDate).toLocaleDateString()}</span>
+                      <span className="date-value">{contest.end_time ? new Date(contest.end_time).toLocaleDateString() : 'N/A'}</span>
                     </div>
                   </div>
-                  <button 
-                    className="start-contest-btn"
-                    onClick={() => startContest(contest)}
-                  >
+                  <button className="start-contest-btn" onClick={() => startContest(contest)}>
                     <span>Start Contest</span>
                     <FiPlay size={18} />
                   </button>
@@ -499,9 +541,7 @@ export default function Contest() {
             </div>
           ) : (
             <div className="no-contests-container">
-              <div className="no-contests-icon">
-                <FiFlag size={64} />
-              </div>
+              <div className="no-contests-icon"><FiFlag size={64} /></div>
               <h2>No Available Contests</h2>
               <p>Check the upcoming contests!</p>
             </div>
@@ -516,9 +556,7 @@ export default function Contest() {
               {filterByDifficulty(contests.filter(c => c.status === 'upcoming')).map((contest) => (
                 <div key={contest.id} className="contest-card upcoming">
                   <div className="contest-card-header">
-                    <div className="contest-icon-wrapper">
-                      <FiClock size={28} />
-                    </div>
+                    <div className="contest-icon-wrapper"><FiClock size={28} /></div>
                     <span className={`status-badge upcoming`}>Upcoming</span>
                   </div>
                   <h3 className="contest-title">{contest.title}</h3>
@@ -526,29 +564,29 @@ export default function Contest() {
                   <div className="contest-details">
                     <div className="contest-detail">
                       <FiBook size={16} />
-                      <span>{contest.subject}</span>
+                      <span>{contest.subject_name || 'General'}</span>
                     </div>
                     <div className="contest-detail">
                       <FiClock size={16} />
-                      <span>{contest.duration} min</span>
+                      <span>{Math.ceil((contest.time_per_question * contest.question_count)/60)} min</span>
                     </div>
                     <div className="contest-detail">
                       <FiLayers size={16} />
-                      <span>{contest.questionCount} questions</span>
+                      <span>{contest.question_count} questions</span>
                     </div>
                     <div className="contest-detail prize">
                       <FiAward size={16} />
-                      <span>{contest.prize}</span>
+                      <span>{contest.time_per_question}s per question</span>
                     </div>
                   </div>
                   <div className="contest-dates">
                     <div className="contest-date">
                       <span className="date-label">Starts:</span>
-                      <span className="date-value">{new Date(contest.startDate).toLocaleDateString()}</span>
+                      <span className="date-value">{contest.start_time ? new Date(contest.start_time).toLocaleDateString() : 'N/A'}</span>
                     </div>
                     <div className="contest-date">
                       <span className="date-label">Ends:</span>
-                      <span className="date-value">{new Date(contest.endDate).toLocaleDateString()}</span>
+                      <span className="date-value">{contest.end_time ? new Date(contest.end_time).toLocaleDateString() : 'N/A'}</span>
                     </div>
                   </div>
                   <div className="contest-actions">
@@ -563,24 +601,13 @@ export default function Contest() {
                         {isRegistered(contest.id) ? 'Registered' : 'Register for Contest'}
                       </span>
                     </button>
-                    <div className="stay-tuned">
-                      <FiClock size={16} />
-                      <span>
-                        {isRegistered(contest.id) 
-                          ? "We'll notify you when it starts!" 
-                          : "Get notified when this contest begins!"
-                        }
-                      </span>
-                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="no-contests-container">
-              <div className="no-contests-icon">
-                <FiClock size={64} />
-              </div>
+              <div className="no-contests-icon"><FiClock size={64} /></div>
               <h2>No Upcoming Contests</h2>
               <p>Check back later for new contests!</p>
             </div>
@@ -590,58 +617,54 @@ export default function Contest() {
 
       {activeTab === 'ended' && (
         <>
-          {filterByDifficulty(contests.filter(c => c.status === 'passed')).length > 0 ? (
+          {filterByDifficulty(contests.filter(c => c.status === 'passed' || isContestCompleted(c.id))).length > 0 ? (
             <div className="contests-grid">
-              {filterByDifficulty(contests.filter(c => c.status === 'passed')).map((contest) => (
+              {filterByDifficulty(contests.filter(c => c.status === 'passed' || isContestCompleted(c.id))).map((contest) => (
                 <div key={contest.id} className="contest-card ended">
                   <div className="contest-card-header">
-                    <div className="contest-icon-wrapper">
-                      <FiCheckSquare size={28} />
-                    </div>
-                    <span className={`status-badge ended`}>Ended</span>
+                    <div className="contest-icon-wrapper"><FiCheckSquare size={28} /></div>
+                    <span className={`status-badge ended`}>{isContestCompleted(contest.id) ? 'Completed' : 'Ended'}</span>
                   </div>
                   <h3 className="contest-title">{contest.title}</h3>
                   <p className="contest-description">{contest.description}</p>
                   <div className="contest-details">
                     <div className="contest-detail">
                       <FiBook size={16} />
-                      <span>{contest.subject}</span>
+                      <span>{contest.subject_name || 'General'}</span>
                     </div>
                     <div className="contest-detail">
                       <FiClock size={16} />
-                      <span>{contest.duration} min</span>
+                      <span>{Math.ceil((contest.time_per_question * contest.question_count)/60)} min</span>
                     </div>
                     <div className="contest-detail">
                       <FiLayers size={16} />
-                      <span>{contest.questionCount} questions</span>
+                      <span>{contest.question_count} questions</span>
                     </div>
                     <div className="contest-detail prize">
                       <FiAward size={16} />
-                      <span>{contest.prize}</span>
+                      <span>{contest.time_per_question}s per question</span>
                     </div>
                   </div>
                   <div className="contest-dates">
                     <div className="contest-date">
                       <span className="date-label">Started:</span>
-                      <span className="date-value">{new Date(contest.startDate).toLocaleDateString()}</span>
+                      <span className="date-value">{contest.start_time ? new Date(contest.start_time).toLocaleDateString() : 'N/A'}</span>
                     </div>
                     <div className="contest-date">
                       <span className="date-label">Ended:</span>
-                      <span className="date-value">{new Date(contest.endDate).toLocaleDateString()}</span>
+                      <span className="date-value">{contest.end_time ? new Date(contest.end_time).toLocaleDateString() : 'N/A'}</span>
                     </div>
                   </div>
                   <button className="contest-ended-btn" disabled>
                     <FiCheckCircle size={18} />
-                    <span>Contest Ended</span>
+                    <span>{isContestCompleted(contest.id) ? 'You Completed' : 'Contest Ended'}</span>
                   </button>
                 </div>
               ))}
             </div>
           ) : (
             <div className="no-contests-container">
-              <div className="no-contests-icon">
-                <FiCheckSquare size={64} />
-              </div>
+              <div className="no-contests-icon"><FiCheckSquare size={64} /></div>
               <h2>No Past Contests</h2>
               <p>No contests have ended yet!</p>
             </div>
@@ -656,6 +679,37 @@ export default function Contest() {
           </div>
           <h2>No Contests Available</h2>
           <p>Check back later for upcoming competitions!</p>
+        </div>
+      )}
+
+      {/* Modal */}
+      {modal.isOpen && (
+        <div className="modal-overlay" onClick={() => setModal(m => ({ ...m, isOpen: false }))}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{modal.title}</h3>
+              <button 
+                className="modal-close" 
+                onClick={() => setModal(m => ({ ...m, isOpen: false }))}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>{modal.message}</p>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="modal-btn modal-btn-primary" 
+                onClick={() => {
+                  if (modal.onConfirm) modal.onConfirm();
+                  setModal(m => ({ ...m, isOpen: false }));
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

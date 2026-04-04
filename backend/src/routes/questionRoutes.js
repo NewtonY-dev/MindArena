@@ -110,6 +110,10 @@ router.get("/:id/answer", authMiddleware, async (req, res) => {
 
 // Create Question (Admin only)
 router.post("/", authMiddleware, adminMiddleware, async (req, res) => {
+  console.log('POST /api/questions route called');
+  console.log('Request body:', req.body);
+  console.log('Request user:', req.user);
+  
   try {
     const { 
       gradeLevelId, 
@@ -118,10 +122,25 @@ router.post("/", authMiddleware, adminMiddleware, async (req, res) => {
       correctAnswer, 
       hint, 
       explanation, 
-      difficultyLevel = 'medium' 
+      difficultyLevel = 'medium',
+      questionType = 'short_answer',
+      options
     } = req.body;
     
+    console.log('Extracted data:', {
+      gradeLevelId,
+      subjectId,
+      content,
+      correctAnswer,
+      hint,
+      explanation,
+      difficultyLevel,
+      questionType,
+      options
+    });
+    
     if (!gradeLevelId || !subjectId || !content || !correctAnswer) {
+      console.log('Missing required fields');
       return res.status(400).json({ 
         error: "gradeLevelId, subjectId, content, and correctAnswer are required" 
       });
@@ -134,16 +153,22 @@ router.post("/", authMiddleware, adminMiddleware, async (req, res) => {
       correctAnswer,
       hint,
       explanation,
-      difficultyLevel
+      difficultyLevel,
+      questionType,
+      options
     };
     
+    console.log('Calling createQuestion with data:', questionData);
     const questionId = await createQuestion(questionData);
+    console.log('Question created with ID:', questionId);
+    
     res.status(201).json({ 
       message: "Question created successfully",
       questionId 
     });
   } catch (error) {
     console.error("Error creating question:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({ error: "Internal server error" });
   }
 });
