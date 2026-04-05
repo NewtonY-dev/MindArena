@@ -132,40 +132,6 @@ Students can see:
 
 ---
 
-### User
-
-Stores student account and profile data.
-
-### GradeLevel
-
-Represents the student’s class or grade.
-
-### Subject
-
-Represents academic subjects such as Math or English.
-
-### Question
-
-Stores the practice content, answer, hint, and explanation.
-
-### Contest
-
-Represents a timed or untimed competition.
-
-### Attempt
-
-Stores each student’s answer submission and correctness.
-
-### Achievement
-
-Stores badges or trophies earned by the student.
-
-### StudyGroup
-
-Represents a group for collaborative learning.
-
----
-
 ## Relationships
 
 - A **User** belongs to one **GradeLevel**
