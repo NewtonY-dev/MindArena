@@ -57,6 +57,7 @@ A personalized home page that shows:
 - points and streaks
 - recommended questions
 - upcoming contests or learning activities
+- real time one vs one challenge
 
 ### Class-Based Questions
 
