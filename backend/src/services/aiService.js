@@ -39,6 +39,18 @@ function setCachedExpectedAnswer(questionId, answer) {
 }
 
 // Prompt A: Generate expected answer from question
+const USE_AI_GENERATED_EXPECTED = process.env.USE_AI_GENERATED_EXPECTED === 'true';
+
+// System instruction for Gemini AI grading
+const SYSTEM_INSTRUCTION = `You are an expert educator grading student answers. 
+Evaluate the student's answer against the expected answer and return a JSON object with:
+- percentageScore (number 0-100): How correct the answer is
+- isCorrect (boolean): Whether the answer is fundamentally correct
+- confidence (number 0-1): Your confidence in this assessment
+- reason (string): Brief explanation of the grading decision
+- analysis (string): Detailed analysis of what was correct/incorrect
+- missingConcepts (array of strings): Key concepts the student missed`;
+
 const PROMPT_A_GENERATE_EXPECTED = `You are an expert educator. Given a question, generate a concise, ideal answer (1-2 sentences) that a student should provide.
 
 Requirements:

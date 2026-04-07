@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import { isDatabaseAvailable } from "../utils/dbHelpers.js";
 
 export const getQuestions = async (req, res) => {
   try {
@@ -524,14 +525,5 @@ export const submitAnswer = async (req, res) => {
   } catch (error) {
     console.error("Error in submitAnswer:", error);
     res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// Helper function to check if database is available
-const isDatabaseAvailable = () => {
-  try {
-    return db && db.query;
-  } catch (error) {
-    return false;
   }
 };

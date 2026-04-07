@@ -1,7 +1,9 @@
 import db from "../config/db.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { createUser, getUserByEmail } from '../models/user.model.js';
 import config from '../config/index.js';
+import { isDatabaseAvailable } from '../utils/dbHelpers.js';
 
 // Mock user data for when database is not available
 const mockUsers = [
@@ -18,15 +20,6 @@ const mockUsers = [
 // Helper function to get mock user by email
 const getMockUser = (email) => {
   return mockUsers.find(user => user.email === email);
-};
-
-// Helper function to check if database is available
-const isDatabaseAvailable = () => {
-  try {
-    return db && db.query;
-  } catch (error) {
-    return false;
-  }
 };
 
 export const registerUser = async (req, res) => {

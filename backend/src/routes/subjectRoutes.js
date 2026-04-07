@@ -1,6 +1,12 @@
 import express from "express";
-import { getAllSubjects, getSubjectById, getSubjectsByGradeLevel, createSubject } from "../models/subject.model.js";
+import { 
+  getAllSubjects, 
+  getSubjectById, 
+  getSubjectsByGradeLevel, 
+  createSubject 
+} from "../models/subject.model.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import db from "../config/db.js";
 
 const router = express.Router();
 
@@ -19,7 +25,6 @@ const mockSubjects = [
 // Helper function to check if database is available
 const isDatabaseAvailable = () => {
   try {
-    const db = require('../config/db.js').default;
     return db && db.query;
   } catch (error) {
     return false;
