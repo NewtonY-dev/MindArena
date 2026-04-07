@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Handshake, Gamepad2, Swords, Clock, Target, User, Users } from 'lucide-react';
-import { challengeApi, challengeSocket } from '../services/challengeService';
-import { api } from '../services/api';
+import { challengeApi, challengeSocket } from '../../services/challengeService';
+import { api } from '../../services/api';
 import './Challenge.css';
 
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const Challenge = () => {
   const navigate = useNavigate();

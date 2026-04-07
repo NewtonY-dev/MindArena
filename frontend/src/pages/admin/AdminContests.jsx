@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiPlus, FiCalendar, FiClock, FiList, FiArrowLeft, FiTrash2, FiEdit2, FiUsers, FiFilter, FiCheckSquare, FiSquare, FiX, FiSave } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import { api } from '../services/api';
+import { api } from '../../services/api';
 import './AdminContests.css';
 
 export default function AdminContests() {

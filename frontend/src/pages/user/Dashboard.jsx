@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
 import { FiBook, FiAward, FiTrendingUp, FiTarget, FiZap, FiBarChart2 } from 'react-icons/fi';
 import './Dashboard.css';
 

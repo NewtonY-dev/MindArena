@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { FiBook, FiFilter, FiZap, FiBarChart2, FiCheckCircle, FiXCircle, FiSun, FiArrowRight, FiArrowLeft, FiRotateCcw, FiLayers } from 'react-icons/fi';
 import './Practice.css';
 

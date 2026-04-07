@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { FiFlag, FiClock, FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft, FiZap, FiAward, FiBook, FiCalendar, FiCheckSquare, FiLayers, FiFilter, FiBell, FiBellOff, FiPlay, FiRotateCcw, FiClock as FiTimer } from 'react-icons/fi';
-import { formatContestDateTime, getTimeRemaining, getCountdownText } from '../utils/dateUtils';
+import { formatContestDateTime, getTimeRemaining, getCountdownText } from '../../utils/dateUtils';
 import './Contest.css';
 
 export default function Contest() {

@@ -1,4 +1,4 @@
-import { QuestionForm } from '../components/admin';
+import { QuestionForm } from '../../components/admin';
 import { FiPlus, FiBookOpen } from 'react-icons/fi';
 import './AdminQuestionCreate.css';
 

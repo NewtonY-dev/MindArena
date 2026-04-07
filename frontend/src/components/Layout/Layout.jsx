@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Brain, Home, BookOpen, Flag, Swords, Trophy, Star, LogOut, User, Shield } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import './Layout.css';
 
 export default function Layout({ children }) {

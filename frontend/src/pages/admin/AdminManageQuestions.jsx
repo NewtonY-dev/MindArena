@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../services/api';
+import { api } from '../../services/api';
 import './AdminManageQuestions.css';
 import { FiEdit2, FiTrash2, FiX, FiFilter, FiPlus, FiFileText, FiCheck, FiAlertCircle, FiHelpCircle, FiCheckCircle, FiBarChart2, FiZap, FiBookOpen, FiSave } from 'react-icons/fi';
 

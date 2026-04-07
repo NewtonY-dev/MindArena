@@ -1,18 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Layout from './components/Layout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ProfileSetup from './pages/ProfileSetup';
-import Dashboard from './pages/Dashboard';
-import Practice from './pages/Practice';
-import Contest from './pages/Contest';
-import Leaderboard from './pages/Leaderboard';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminQuestionCreate from './pages/AdminQuestionCreate';
-import AdminManageQuestions from './pages/AdminManageQuestions';
-import AdminContests from './pages/AdminContests';
-import Challenge from './pages/Challenge';
+import Layout from './components/Layout/Layout';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ProfileSetup from './pages/auth/ProfileSetup';
+import Dashboard from './pages/user/Dashboard';
+import Practice from './pages/user/Practice';
+import Contest from './pages/user/Contest';
+import Leaderboard from './pages/user/Leaderboard';
+import Challenge from './pages/user/Challenge';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminQuestionCreate from './pages/admin/AdminQuestionCreate';
+import AdminManageQuestions from './pages/admin/AdminManageQuestions';
+import AdminContests from './pages/admin/AdminContests';
 
 function ProtectedRoute({ children }) {
   const { user, loading, needsProfileSetup } = useAuth();
