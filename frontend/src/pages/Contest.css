@@ -510,6 +510,13 @@
   font-weight: 600;
 }
 
+.date-countdown {
+  font-size: 0.85rem;
+  color: #4f46e5;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
 /* Status Badge */
 .status-badge {
   padding: 6px 14px;

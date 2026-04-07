@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { FiFlag, FiClock, FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft, FiZap, FiAward, FiBook, FiCalendar, FiCheckSquare, FiLayers, FiFilter, FiBell, FiBellOff, FiPlay, FiRotateCcw, FiClock as FiTimer } from 'react-icons/fi';
+import { formatContestDateTime, getTimeRemaining, getCountdownText } from '../utils/dateUtils';
 import './Contest.css';
 
 export default function Contest() {
@@ -20,6 +21,7 @@ export default function Contest() {
   const [registeredContests, setRegisteredContests] = useState(new Set());
   const [completedContests, setCompletedContests] = useState(new Set());
   const [modal, setModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null, showCancel: false });
+  const [countdowns, setCountdowns] = useState({});
   const { refreshUser } = useAuth();
 
   useEffect(() => {
@@ -55,6 +57,22 @@ export default function Contest() {
       return () => clearInterval(timer);
     }
   }, [contestStarted, timeLeft]);
+
+  // Countdown effect for contest cards
+  useEffect(() => {
+    const updateCountdowns = () => {
+      const newCountdowns = {};
+      contests.forEach(contest => {
+        const timeInfo = getTimeRemaining(contest.start_time, contest.end_time);
+        newCountdowns[contest.id] = timeInfo;
+      });
+      setCountdowns(newCountdowns);
+    };
+
+    updateCountdowns();
+    const timer = setInterval(updateCountdowns, 1000);
+    return () => clearInterval(timer);
+  }, [contests]);
 
   const loadContests = async () => {
     console.log('[Contest.jsx] loadContests: Starting...');
@@ -524,12 +542,12 @@ export default function Contest() {
                   </div>
                   <div className="contest-dates">
                     <div className="contest-date">
-                      <span className="date-label">Start:</span>
-                      <span className="date-value">{contest.start_time ? new Date(contest.start_time).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                    <div className="contest-date">
-                      <span className="date-label">End:</span>
-                      <span className="date-value">{contest.end_time ? new Date(contest.end_time).toLocaleDateString() : 'N/A'}</span>
+                      <span className="date-value">
+                        {formatContestDateTime(contest.start_time)}
+                      </span>
+                      <span className="date-countdown">
+                        {countdowns[contest.id] && getCountdownText(countdowns[contest.id])}
+                      </span>
                     </div>
                   </div>
                   <button className="start-contest-btn" onClick={() => startContest(contest)}>
@@ -581,12 +599,12 @@ export default function Contest() {
                   </div>
                   <div className="contest-dates">
                     <div className="contest-date">
-                      <span className="date-label">Starts:</span>
-                      <span className="date-value">{contest.start_time ? new Date(contest.start_time).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                    <div className="contest-date">
-                      <span className="date-label">Ends:</span>
-                      <span className="date-value">{contest.end_time ? new Date(contest.end_time).toLocaleDateString() : 'N/A'}</span>
+                      <span className="date-value">
+                        {formatContestDateTime(contest.start_time)}
+                      </span>
+                      <span className="date-countdown">
+                        {countdowns[contest.id] && getCountdownText(countdowns[contest.id])}
+                      </span>
                     </div>
                   </div>
                   <div className="contest-actions">
@@ -647,12 +665,12 @@ export default function Contest() {
                   </div>
                   <div className="contest-dates">
                     <div className="contest-date">
-                      <span className="date-label">Started:</span>
-                      <span className="date-value">{contest.start_time ? new Date(contest.start_time).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                    <div className="contest-date">
-                      <span className="date-label">Ended:</span>
-                      <span className="date-value">{contest.end_time ? new Date(contest.end_time).toLocaleDateString() : 'N/A'}</span>
+                      <span className="date-value">
+                        {formatContestDateTime(contest.start_time)}
+                      </span>
+                      <span className="date-countdown">
+                        Contest Ended
+                      </span>
                     </div>
                   </div>
                   <button className="contest-ended-btn" disabled>
