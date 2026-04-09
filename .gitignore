@@ -105,4 +105,6 @@ Desktop.ini
 .qodo/
 
 # Documentation files
-# MindArena_MVP.docx
+dumpedDatabase.sql
+project-documentation.txt
+MindArena_MVP.txt

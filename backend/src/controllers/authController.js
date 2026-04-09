@@ -59,7 +59,8 @@ export const registerUser = async (req, res) => {
             id: result.insertId,
             email,
             displayName: email.split('@')[0],
-            points: 0
+            points: 0,
+            isProfileComplete: false
           },
           token
         });
@@ -84,8 +85,15 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    // Database login
-    const getUserSql = 'SELECT id, email, password_hash, display_name, points, grade_level_id, role FROM users WHERE email = ?';
+    // Database login - include subject count for profile completion check
+    const getUserSql = `
+      SELECT u.id, u.email, u.password_hash, u.display_name, u.points, u.grade_level_id, u.role,
+             COUNT(us.subject_id) as subject_count
+      FROM users u
+      LEFT JOIN user_subjects us ON u.id = us.user_id
+      WHERE u.email = ?
+      GROUP BY u.id, u.email, u.password_hash, u.display_name, u.points, u.grade_level_id, u.role
+    `;
     
     db.query(getUserSql, [email], async (err, results) => {
       if (err) {
@@ -118,7 +126,8 @@ export const loginUser = async (req, res) => {
           displayName: user.display_name,
           points: user.points,
           gradeLevelId: user.grade_level_id,
-          role: user.role
+          role: user.role,
+          isProfileComplete: user.grade_level_id !== null && user.subject_count > 0
         },
         token
       });

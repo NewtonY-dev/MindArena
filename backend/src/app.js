@@ -4,6 +4,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import config from "./config/index.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import authMiddleware from "./middleware/authMiddleware.js";
+import profileCompletionMiddleware from "./middleware/profileCompletionMiddleware.js";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
@@ -47,17 +49,25 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Routes
+// Public Routes (no auth required)
 app.use(`${config.API_PREFIX}/auth`, authRoutes);
-app.use(`${config.API_PREFIX}/users`, userRoutes);
-app.use(`${config.API_PREFIX}/practice`, practiceRoutes);
-app.use(`${config.API_PREFIX}/attempts`, attemptRoutes);
-app.use(`${config.API_PREFIX}/leaderboard`, leaderboardRoutes);
+
+// Public reference data (needed for profile setup)
 app.use(`${config.API_PREFIX}/grade-levels`, gradeLevelRoutes);
 app.use(`${config.API_PREFIX}/subjects`, subjectRoutes);
-app.use(`${config.API_PREFIX}/questions`, questionRoutes);
-app.use(`${config.API_PREFIX}/contests`, contestRoutes);
-app.use(`${config.API_PREFIX}/challenges`, challengeRoutes);
+
+// User routes (auth required, profile setup endpoint accessible)
+app.use(`${config.API_PREFIX}/users`, userRoutes);
+
+// Protected Routes (require completed profile)
+app.use(`${config.API_PREFIX}/practice`, authMiddleware, profileCompletionMiddleware, practiceRoutes);
+app.use(`${config.API_PREFIX}/attempts`, authMiddleware, profileCompletionMiddleware, attemptRoutes);
+app.use(`${config.API_PREFIX}/questions`, authMiddleware, profileCompletionMiddleware, questionRoutes);
+app.use(`${config.API_PREFIX}/contests`, authMiddleware, profileCompletionMiddleware, contestRoutes);
+app.use(`${config.API_PREFIX}/challenges`, authMiddleware, profileCompletionMiddleware, challengeRoutes);
+app.use(`${config.API_PREFIX}/leaderboard`, authMiddleware, profileCompletionMiddleware, leaderboardRoutes);
+
+// Admin routes (separate auth)
 app.use(`${config.API_PREFIX}/admin`, adminRoutes);
 
 

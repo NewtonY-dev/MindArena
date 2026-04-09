@@ -58,7 +58,6 @@ export const setupUserProfile = async (req, res) => {
       });
     }
     
-    // Use the transaction helper from db config
     db.getConnection((err, connection) => {
       if (err) {
         console.error("Connection error:", err);
