@@ -264,125 +264,88 @@ export const submitAnswer = async (req, res) => {
             
             let pointsAwarded = 0;
             
-            // Award points if correct (only if not already answered correctly before)
-            if (isCorrect) {
-              // Check if user already answered this question correctly before this attempt
-              const checkPreviousSql = `
-                SELECT id FROM attempts 
-                WHERE user_id = ? AND question_id = ? AND is_correct = TRUE
-                AND id != ?
-                LIMIT 1
-              `;
+            // Check if user already answered this question correctly before this attempt
+            const checkPreviousSql = `
+              SELECT id FROM attempts 
+              WHERE user_id = ? AND question_id = ? AND is_correct = TRUE
+              AND id != ?
+              LIMIT 1
+            `;
+            
+            connection.query(checkPreviousSql, [userId, questionId, attemptResults.insertId], (err, previousResults) => {
+              if (err) {
+                return connection.rollback(() => {
+                  connection.release();
+                  console.error("Database error:", err);
+                  res.status(500).json({ error: "Internal server error" });
+                });
+              }
               
-              connection.query(checkPreviousSql, [userId, questionId, attemptResults.insertId], (err, previousResults) => {
-                if (err) {
-                  return connection.rollback(() => {
-                    connection.release();
-                    console.error("Database error:", err);
-                    res.status(500).json({ error: "Internal server error" });
-                  });
-                }
-                
-                const hasPreviousCorrect = previousResults.length > 0;
-                
-                if (!hasPreviousCorrect) {
-                  // First time correct - award points
-                  const updatePointsSql = `
-                    UPDATE users 
-                    SET points = points + 1 
-                    WHERE id = ?
-                  `;
-                  
-                  connection.query(updatePointsSql, [userId], (err, updateResults) => {
-                    if (err) {
-                      return connection.rollback(() => {
-                        connection.release();
-                        console.error("Database error:", err);
-                        res.status(500).json({ error: "Internal server error" });
-                      });
-                    }
-                    
-                    pointsAwarded = 1;
-                    finishResponse();
-                  });
-                } else {
-                  // Already answered correctly before - no points
-                  pointsAwarded = 0;
-                  finishResponse();
-                }
-                
-                function finishResponse() {
-                  // Get current total points
-                  const getPointsSql = `SELECT points FROM users WHERE id = ?`;
-                  
-                  connection.query(getPointsSql, [userId], (err, pointsResults) => {
-                    if (err) {
-                      return connection.rollback(() => {
-                        connection.release();
-                        console.error("Database error:", err);
-                        res.status(500).json({ error: "Internal server error" });
-                      });
-                    }
-                    
-                    const totalPoints = pointsResults[0].points;
-                    
-                    connection.commit((err) => {
-                      if (err) {
-                        return connection.rollback(() => {
-                          connection.release();
-                          console.error("Commit error:", err);
-                          res.status(500).json({ error: "Internal server error" });
-                        });
-                      }
-                      
-                      connection.release();
-                      res.json({
-                        isCorrect,
-                        correctAnswer: question.correct_answer,
-                        hint: question.hint,
-                        pointsAwarded,
-                        totalPoints,
-                        alreadyAnswered: hasPreviousCorrect
-                      });
-                    });
-                  });
-                }
-              });
-            } else {
-              // Get current points for incorrect answer
-              const getPointsSql = `SELECT points FROM users WHERE id = ?`;
+              const alreadyAnswered = previousResults.length > 0;
               
-              connection.query(getPointsSql, [userId], (err, pointsResults) => {
-                if (err) {
-                  return connection.rollback(() => {
-                    connection.release();
-                    console.error("Database error:", err);
-                    res.status(500).json({ error: "Internal server error" });
-                  });
-                }
+              // Award points if correct (only if not already answered correctly before)
+              if (isCorrect && !alreadyAnswered) {
+                const updatePointsSql = `
+                  UPDATE users 
+                  SET points = points + 1 
+                  WHERE id = ?
+                `;
                 
-                const totalPoints = pointsResults[0].points;
-                
-                connection.commit((err) => {
+                connection.query(updatePointsSql, [userId], (err, updateResults) => {
                   if (err) {
                     return connection.rollback(() => {
                       connection.release();
-                      console.error("Commit error:", err);
+                      console.error("Database error:", err);
                       res.status(500).json({ error: "Internal server error" });
                     });
                   }
                   
-                  connection.release();
-                  res.json({
-                    isCorrect,
-                    correctAnswer: question.correct_answer,
-                    hint: question.hint,
-                    pointsAwarded: 0,
-                    totalPoints
+                  pointsAwarded = 1;
+                  finishResponse();
+                });
+              } else {
+                // Either incorrect answer, or already answered correctly before
+                pointsAwarded = 0;
+                finishResponse();
+              }
+              
+              function finishResponse() {
+                // Get current total points
+                const getPointsSql = `SELECT points FROM users WHERE id = ?`;
+                
+                connection.query(getPointsSql, [userId], (err, pointsResults) => {
+                  if (err) {
+                    return connection.rollback(() => {
+                      connection.release();
+                      console.error("Database error:", err);
+                      res.status(500).json({ error: "Internal server error" });
+                    });
+                  }
+                  
+                  const totalPoints = pointsResults[0].points;
+                  
+                  connection.commit((err) => {
+                    if (err) {
+                      return connection.rollback(() => {
+                        connection.release();
+                        console.error("Commit error:", err);
+                        res.status(500).json({ error: "Internal server error" });
+                      });
+                    }
+                    
+                    connection.release();
+                    res.json({
+                      isCorrect,
+                      correctAnswer: question.correct_answer,
+                      hint: question.hint,
+                      pointsAwarded,
+                      totalPoints,
+                      alreadyAnswered
+                    });``
                   });
                 });
-              });
-            }
+              }
+            });
           });
         });
       });
