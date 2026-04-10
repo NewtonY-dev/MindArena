@@ -38,11 +38,11 @@ const startServer = async () => {
         }
       });
 
-      // Force close after 5 minutes
+      // Force close after 25 minutes
       setTimeout(() => {
         console.error('Forced shutdown due to timeout');
         process.exit(1);
-      }, 300000);
+      }, 1500000);
     };
 
     // Handle shutdown signals

@@ -18,7 +18,7 @@ const config = {
   
   // JWT Configuration
   JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret_change_in_production',
-  JWT_EXPIRE: process.env.JWT_EXPIRE || '7d',
+  JWT_EXPIRE: process.env.JWT_EXPIRE || '1h',
   
   // Security Configuration
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
