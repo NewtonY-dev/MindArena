@@ -1,5 +1,5 @@
 import express from "express";
-import { getQuestions, submitAnswer, getCorrectlyAnsweredQuestions } from "../controllers/practiceController.js";
+import { getQuestions, submitAnswer, getCorrectlyAnsweredQuestions, getProgress } from "../controllers/practiceController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -12,5 +12,8 @@ router.post("/submit", authMiddleware, submitAnswer);
 
 // Get user's correctly answered questions history (review section)
 router.get("/history", authMiddleware, getCorrectlyAnsweredQuestions);
+
+// Get user's progress (overall or subject-specific)
+router.get("/progress", authMiddleware, getProgress);
 
 export default router;

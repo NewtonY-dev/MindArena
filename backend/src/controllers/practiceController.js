@@ -392,3 +392,167 @@ export const submitAnswer = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const getProgress = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { subjectId } = req.query;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const userSql = `SELECT grade_level_id FROM users WHERE id = ?`;
+    
+    db.query(userSql, [userId], async (err, userResults) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+      
+      if (userResults.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const gradeLevelId = userResults[0].grade_level_id;
+      
+      if (!gradeLevelId) {
+        return res.status(400).json({ 
+          error: "Grade level not set. Please complete your profile setup.",
+          code: "PROFILE_INCOMPLETE"
+        });
+      }
+      
+      if (subjectId) {
+        const validateSubjectSql = `
+          SELECT s.id, s.name 
+          FROM subjects s
+          INNER JOIN user_subjects us ON s.id = us.subject_id
+          WHERE us.user_id = ? AND s.id = ?
+        `;
+        
+        const subjectValidation = await new Promise((resolve, reject) => {
+          db.query(validateSubjectSql, [userId, subjectId], (err, results) => {
+            if (err) reject(err);
+            else resolve(results);
+          });
+        });
+        
+        if (subjectValidation.length === 0) {
+          return res.status(403).json({ 
+            error: "Subject not in your enrolled subjects" 
+          });
+        }
+      }
+      
+      // Query A: Count total available questions (full pool, including answered)
+      let totalQuestionsSql;
+      let totalParams;
+      
+      if (subjectId) {
+        totalQuestionsSql = `
+          SELECT COUNT(*) as total
+          FROM questions q
+          LEFT JOIN contest_questions cq ON q.id = cq.question_id
+          WHERE q.grade_level_id = ? 
+            AND q.subject_id = ? 
+            AND cq.question_id IS NULL
+        `;
+        totalParams = [gradeLevelId, subjectId];
+      } else {
+        totalQuestionsSql = `
+          SELECT COUNT(DISTINCT q.id) as total
+          FROM questions q
+          INNER JOIN user_subjects us ON q.subject_id = us.subject_id
+          LEFT JOIN contest_questions cq ON q.id = cq.question_id
+          WHERE q.grade_level_id = ? 
+            AND us.user_id = ? 
+            AND cq.question_id IS NULL
+        `;
+        totalParams = [gradeLevelId, userId];
+      }
+      
+      // Query B: Count correctly answered questions
+      let answeredCorrectlySql;
+      let answeredParams;
+      
+      if (subjectId) {
+        answeredCorrectlySql = `
+          SELECT COUNT(DISTINCT a.question_id) as answered_correctly
+          FROM attempts a
+          INNER JOIN questions q ON a.question_id = q.id
+          LEFT JOIN contest_questions cq ON q.id = cq.question_id
+          WHERE a.user_id = ? 
+            AND a.is_correct = TRUE
+            AND q.grade_level_id = ?
+            AND q.subject_id = ?
+            AND cq.question_id IS NULL
+        `;
+        answeredParams = [userId, gradeLevelId, subjectId];
+      } else {
+        answeredCorrectlySql = `
+          SELECT COUNT(DISTINCT a.question_id) as answered_correctly
+          FROM attempts a
+          INNER JOIN questions q ON a.question_id = q.id
+          INNER JOIN user_subjects us ON q.subject_id = us.subject_id
+          LEFT JOIN contest_questions cq ON q.id = cq.question_id
+          WHERE a.user_id = ? 
+            AND a.is_correct = TRUE
+            AND q.grade_level_id = ?
+            AND us.user_id = ?
+            AND cq.question_id IS NULL
+        `;
+        answeredParams = [userId, gradeLevelId, userId];
+      }
+      
+      // Execute both queries in parallel
+      try {
+        const [totalResult, answeredResult] = await Promise.all([
+          new Promise((resolve, reject) => {
+            db.query(totalQuestionsSql, totalParams, (err, results) => {
+              if (err) reject(err);
+              else resolve(results[0].total);
+            });
+          }),
+          new Promise((resolve, reject) => {
+            db.query(answeredCorrectlySql, answeredParams, (err, results) => {
+              if (err) reject(err);
+              else resolve(results[0].answered_correctly);
+            });
+          })
+        ]);
+        
+        const totalQuestions = totalResult || 0;
+        const answeredCorrectly = answeredResult || 0;
+        
+        let percentage = 0;
+        if (totalQuestions > 0) {
+          percentage = Math.round((answeredCorrectly / totalQuestions) * 1000) / 10;
+        }
+        
+        const response = {
+          progress: {
+            subjectId: subjectId ? parseInt(subjectId) : null,
+            scope: subjectId ? "subject" : "overall",
+            totalQuestions,
+            answeredCorrectly,
+            percentage,
+            remaining: totalQuestions - answeredCorrectly
+          }
+        };
+        
+        if (totalQuestions === 0) {
+          response.progress.message = "No questions available for this scope";
+        }
+        
+        res.json(response);
+      } catch (queryError) {
+        console.error("Query error:", queryError);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+    });
+  } catch (error) {
+    console.error("Error in getProgress:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
