@@ -7,12 +7,25 @@ import {
   updateQuestion,
   deleteQuestion
 } from "../models/question.model.js";
+import { getUserById } from "../models/user.model.js";
 import { gradeAndRecordAnswer } from "../services/gradingService.js";
 
 export const getQuestionsByGrade = async (req, res) => {
   try {
+    const userId = req.user?.id;
     const { gradeLevelId } = req.params;
     const { subjectId } = req.query;
+    
+    // Check if user has grade level set
+    if (userId) {
+      const user = await getUserById(userId);
+      if (!user || !user.grade_level_id) {
+        return res.status(400).json({ 
+          error: "Grade level not set. Please complete your profile setup.",
+          code: "PROFILE_INCOMPLETE"
+        });
+      }
+    }
     
     const questions = await getQuestionsByGradeAndSubject(gradeLevelId, subjectId);
     
@@ -36,6 +49,16 @@ export const getQuestionsByGrade = async (req, res) => {
 export const getMyQuestions = async (req, res) => {
   try {
     const userId = req.user.id;
+    
+    // Check if user has grade level set
+    const user = await getUserById(userId);
+    if (!user || !user.grade_level_id) {
+      return res.status(400).json({ 
+        error: "Grade level not set. Please complete your profile setup.",
+        code: "PROFILE_INCOMPLETE"
+      });
+    }
+    
     const questions = await getQuestionsByUserSubjects(userId);
     
     // Remove correct_answer from practice questions
@@ -58,6 +81,19 @@ export const getMyQuestions = async (req, res) => {
 export const getQuestionByIdHandler = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
+    
+    // Check if user has grade level set
+    if (userId) {
+      const user = await getUserById(userId);
+      if (!user || !user.grade_level_id) {
+        return res.status(400).json({ 
+          error: "Grade level not set. Please complete your profile setup.",
+          code: "PROFILE_INCOMPLETE"
+        });
+      }
+    }
+    
     const question = await getQuestionById(id);
     
     if (!question) {
