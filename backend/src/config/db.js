@@ -125,22 +125,17 @@ const getPoolStatus = () => {
 
 // Graceful shutdown
 const closePool = async () => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     pool.end((err) => {
-      if (err) {
-        console.error('Error closing database pool:', err);
-        reject(err);
-      } else {
-        console.log('🔌 Database connection pool closed');
-        resolve();
+      if (err && !err.message?.includes('closed state')) {
+        console.error('Error closing database pool:', err.message);
       }
+      // Resolve even on error - connections may already be closed
+      console.log('🔌 Database connection pool closed');
+      resolve();
     });
   });
 };
-
-// Handle process termination
-process.on('SIGINT', closePool);
-process.on('SIGTERM', closePool);
 
 // Export the database connection with callback interface for existing models
 const db = {
