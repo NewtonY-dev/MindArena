@@ -6,6 +6,7 @@ import {
   createSubjectHandler
 } from "../controllers/subjectController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import adminMiddleware from "../middleware/adminMiddleware.js";
 
 const router = express.Router();
 
@@ -19,6 +20,6 @@ router.get("/:id", getSubjectByIdHandler);
 router.get("/grade/:gradeLevelId", getSubjectsByGradeHandler);
 
 // Create Subject (Admin only)
-router.post("/", authMiddleware, createSubjectHandler);
+router.post("/", authMiddleware, adminMiddleware, createSubjectHandler);
 
 export default router;

@@ -44,7 +44,17 @@ export const getSubjectsByGradeHandler = async (req, res) => {
 
 export const createSubjectHandler = async (req, res) => {
   try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
     const { name } = req.body;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    if (userRole !== 'admin') {
+      return res.status(403).json({ error: "Forbidden - Admin access required" });
+    }
     
     if (!name) {
       return res.status(400).json({ error: "Subject name is required" });

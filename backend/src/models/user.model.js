@@ -8,6 +8,7 @@ export const createUsersTable = () => {
       password_hash VARCHAR(255) NOT NULL,
       display_name VARCHAR(100) NULL,
       grade_level_id INT NULL,
+      role VARCHAR(20) DEFAULT 'user',
       points INT DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
