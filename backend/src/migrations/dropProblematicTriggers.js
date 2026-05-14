@@ -57,7 +57,7 @@ export const runMigration = async () => {
 };
 
 // Run migration if this file is executed directly
-if (process.argv[1].includes('dropProblematicTriggers.js')) {
+if (process.argv[1]?.includes('dropProblematicTriggers.js')) {
   runMigration()
     .then(() => {
       console.log('Done');

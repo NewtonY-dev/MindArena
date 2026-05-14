@@ -8,10 +8,10 @@ const fixTable = (tableName, requiredColumns) => {
         resolve();
         return;
       }
-      
-      const existingColumns = columns.map(c => c.Field);
+
+      const existingColumns = columns.map((c) => c.Field);
       const fixes = [];
-      
+
       for (const [columnName, columnDef] of Object.entries(requiredColumns)) {
         if (!existingColumns.includes(columnName)) {
           fixes.push(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`);
@@ -25,15 +25,15 @@ const fixTable = (tableName, requiredColumns) => {
       }
 
       let completed = 0;
-      let errors = [];
+      const errors = [];
 
       fixes.forEach((sql) => {
-        db.query(sql, (err) => {
+        db.query(sql, (queryError) => {
           completed++;
-          if (err) {
-            errors.push(err.message);
+          if (queryError) {
+            errors.push(queryError.message);
           }
-          
+
           if (completed === fixes.length) {
             if (errors.length > 0) {
               console.log(`Some ${tableName} fixes had issues:`, errors);
@@ -67,11 +67,10 @@ export const fixContestsTable = () => {
     rules: 'TEXT NULL',
     max_participants: 'INT NULL'
   }).then(() => {
-    // Also ensure columns allow NULL (in case they were created differently)
     return new Promise((resolve) => {
       const columnsToFix = ['subject', 'duration', 'start_date', 'end_date', 'prize', 'rules', 'max_participants'];
       let done = 0;
-      columnsToFix.forEach(col => {
+      columnsToFix.forEach((col) => {
         let sql;
         if (col === 'duration' || col === 'max_participants') {
           sql = `ALTER TABLE contests MODIFY COLUMN ${col} INT NULL`;
@@ -90,30 +89,26 @@ export const fixContestsTable = () => {
       });
     });
   }).then(() => {
-    // Fix any invalid status values by first converting to VARCHAR, then cleaning, then back to ENUM
     return new Promise((resolve) => {
-      // Step 1: Change status to VARCHAR to allow fixing
       db.query(`ALTER TABLE contests MODIFY COLUMN status VARCHAR(50)`, (err) => {
         if (err) {
           console.log('Could not modify status to VARCHAR:', err.message);
           resolve();
           return;
         }
-        
-        // Step 2: Trim and fix status values
-        db.query(`UPDATE contests SET status = TRIM(status)`, (err) => {
-          if (err) console.log('Could not trim status:', err.message);
-          
-          db.query(`UPDATE contests SET status = 'upcoming' WHERE status NOT IN ('upcoming', 'active', 'passed') OR status IS NULL`, (err, result) => {
-            if (err) {
-              console.log('Could not fix invalid status values:', err.message);
+
+        db.query(`UPDATE contests SET status = TRIM(status)`, (trimError) => {
+          if (trimError) console.log('Could not trim status:', trimError.message);
+
+          db.query(`UPDATE contests SET status = 'upcoming' WHERE status NOT IN ('upcoming', 'active', 'passed') OR status IS NULL`, (updateError, result) => {
+            if (updateError) {
+              console.log('Could not fix invalid status values:', updateError.message);
             } else if (result && result.affectedRows > 0) {
               console.log(`Fixed ${result.affectedRows} invalid status values`);
             }
-            
-            // Step 3: Change back to ENUM
-            db.query(`ALTER TABLE contests MODIFY COLUMN status ENUM('upcoming', 'active', 'passed') DEFAULT 'upcoming'`, (err) => {
-              if (err) console.log('Could not modify status back to ENUM:', err.message);
+
+            db.query(`ALTER TABLE contests MODIFY COLUMN status ENUM('upcoming', 'active', 'passed') DEFAULT 'upcoming'`, (enumError) => {
+              if (enumError) console.log('Could not modify status back to ENUM:', enumError.message);
               else console.log('Status column fixed and converted back to ENUM');
               resolve();
             });

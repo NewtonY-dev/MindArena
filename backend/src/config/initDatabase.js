@@ -1,5 +1,5 @@
-import { initializeDatabase } from '../models/createTables.js';
-import { seedDatabase } from '../models/seedData.js';
+import { initializeDatabase } from '../migrations/initializeTables.js';
+import { seedDatabase } from '../seeders/seedData.js';
 import { runMigration as runTriggerMigration } from '../migrations/dropProblematicTriggers.js';
 import config from './index.js';
 

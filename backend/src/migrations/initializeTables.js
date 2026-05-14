@@ -1,23 +1,22 @@
-import connection from '../config/db.js';
-import { createUsersTable } from './user.model.js';
-import { createGradeLevelsTable } from './gradeLevel.model.js';
-import { createSubjectsTable } from './subject.model.js';
-import { createQuestionsTable } from './question.model.js';
-import { createAttemptsTable } from './attempt.model.js';
-import { createUserSubjectsTable } from './userSubject.model.js';
+import { createUsersTable } from '../models/user.model.js';
+import { createGradeLevelsTable } from '../models/gradeLevel.model.js';
+import { createSubjectsTable } from '../models/subject.model.js';
+import { createQuestionsTable } from '../models/question.model.js';
+import { createAttemptsTable } from '../models/attempt.model.js';
+import { createUserSubjectsTable } from '../models/userSubject.model.js';
 import {
   createChallengeRoomsTable,
   createChallengeParticipantsTable,
   createChallengeQuestionsTable,
   createChallengeAttemptsTable,
   createChallengeLeaderboardView
-} from './challenge.model.js';
+} from '../models/challenge.model.js';
 import {
   createContestsTable,
   createContestQuestionsTable,
   createContestParticipantsTable,
   createContestAttemptsTable
-} from './contest.model.js';
+} from '../models/contest.model.js';
 import { fixContestsTable, fixQuestionsTable, fixContestParticipantsTable } from './fixTables.js';
 
 export const initializeDatabase = async () => {
