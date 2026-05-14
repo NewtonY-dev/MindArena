@@ -1,4 +1,4 @@
-import db from "../config/db.js";
+import { getCurrentUserProfile, setupUserProfile as saveUserProfile, getDashboardStatsByUser } from "../models/user.model.js";
 
 export const getCurrentUser = async (req, res) => {
   try {
@@ -8,35 +8,13 @@ export const getCurrentUser = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const userSql = `
-      SELECT u.id, u.email, u.display_name, u.grade_level_id, u.points, u.created_at,
-             GROUP_CONCAT(us.subject_id) as subject_ids
-      FROM users u
-      LEFT JOIN user_subjects us ON u.id = us.user_id
-      WHERE u.id = ?
-      GROUP BY u.id
-    `;
-    
-    db.query(userSql, [userId], (err, results) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).json({ error: "Internal server error" });
-      }
-      
-      if (results.length === 0) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      const user = results[0];
-      res.json({
-        id: user.id,
-        email: user.email,
-        displayName: user.display_name,
-        gradeLevelId: user.grade_level_id,
-        subjectIds: user.subject_ids ? user.subject_ids.split(',') : [],
-        points: user.points
-      });
-    });
+    const user = await getCurrentUserProfile(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(user);
   } catch (error) {
     console.error("Error in getCurrentUser:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -58,94 +36,19 @@ export const setupUserProfile = async (req, res) => {
       });
     }
     
-    db.getConnection((err, connection) => {
-      if (err) {
-        console.error("Connection error:", err);
-        return res.status(500).json({ error: "Internal server error" });
+    const updated = await saveUserProfile(userId, gradeLevelId, subjectIds);
+
+    if (!updated) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: userId,
+        gradeLevelId,
+        subjectIds
       }
-      
-      connection.beginTransaction((err) => {
-        if (err) {
-          connection.release();
-          console.error("Transaction error:", err);
-          return res.status(500).json({ error: "Internal server error" });
-        }
-        
-        // Update user profile
-        const updateUserSql = `
-          UPDATE users 
-          SET grade_level_id = ?
-          WHERE id = ?
-        `;
-        
-        connection.query(updateUserSql, [gradeLevelId, userId], (err, results) => {
-          if (err) {
-            return connection.rollback(() => {
-              connection.release();
-              console.error("Database error:", err);
-              res.status(500).json({ error: "Internal server error" });
-            });
-          }
-          
-          if (results.affectedRows === 0) {
-            return connection.rollback(() => {
-              connection.release();
-              res.status(404).json({ error: "User not found" });
-            });
-          }
-          
-          // Delete existing subject associations
-          const deleteSubjectsSql = `DELETE FROM user_subjects WHERE user_id = ?`;
-          
-          connection.query(deleteSubjectsSql, [userId], (err) => {
-            if (err) {
-              return connection.rollback(() => {
-                connection.release();
-                console.error("Database error:", err);
-                res.status(500).json({ error: "Internal server error" });
-              });
-            }
-            
-            // Insert new subject associations
-            const insertSubjectsSql = `
-              INSERT INTO user_subjects (user_id, subject_id) 
-              VALUES ?
-            `;
-            
-            const subjectValues = subjectIds.map(subjectId => [userId, subjectId]);
-            
-            connection.query(insertSubjectsSql, [subjectValues], (err) => {
-              if (err) {
-                return connection.rollback(() => {
-                  connection.release();
-                  console.error("Database error:", err);
-                  res.status(500).json({ error: "Internal server error" });
-                });
-              }
-              
-              connection.commit((err) => {
-                if (err) {
-                  return connection.rollback(() => {
-                    connection.release();
-                    console.error("Commit error:", err);
-                    res.status(500).json({ error: "Internal server error" });
-                  });
-                }
-                
-                connection.release();
-                res.json({ 
-                  message: "Profile updated successfully",
-                  user: {
-                    id: userId,
-                    gradeLevelId,
-                    subjectIds
-                  }
-                });
-              });
-            });
-          });
-        });
-      });
     });
   } catch (error) {
     console.error("Error in setupUserProfile:", error);
@@ -161,46 +64,26 @@ export const getDashboardStats = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const statsSql = `
-      SELECT 
-        u.points,
-        COUNT(DISTINCT a.id) as practice_attempted,
-        SUM(CASE WHEN a.is_correct = 1 THEN 1 ELSE 0 END) as practice_correct,
-        COUNT(DISTINCT ca.id) as challenge_attempted,
-        SUM(CASE WHEN ca.is_correct = 1 THEN 1 ELSE 0 END) as challenge_correct
-      FROM users u
-      LEFT JOIN attempts a ON u.id = a.user_id
-      LEFT JOIN challenge_attempts ca ON u.id = ca.user_id
-      WHERE u.id = ?
-      GROUP BY u.id, u.points
-    `;
-    
-    db.query(statsSql, [userId], (err, results) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).json({ error: "Internal server error" });
-      }
-      
-      if (results.length === 0) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      const stats = results[0];
-      const practiceAttempted = stats.practice_attempted || 0;
-      const practiceCorrect = stats.practice_correct || 0;
-      const challengeAttempted = stats.challenge_attempted || 0;
-      const challengeCorrect = stats.challenge_correct || 0;
-      
-      const totalAttempted = practiceAttempted + challengeAttempted;
-      const totalCorrect = practiceCorrect + challengeCorrect;
-      let accuracy = totalAttempted > 0 ? (totalCorrect / totalAttempted) * 100 : 0;
-      accuracy = Math.max(0, Math.min(100, accuracy));
-      
-      res.json({
-        points: stats.points || 0,
-        accuracy: Math.round(accuracy * 10) / 10, // Round to 1 decimal place
-        totalAttempted
-      });
+    const stats = await getDashboardStatsByUser(userId);
+
+    if (!stats) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const practiceAttempted = stats.practice_attempted || 0;
+    const practiceCorrect = stats.practice_correct || 0;
+    const challengeAttempted = stats.challenge_attempted || 0;
+    const challengeCorrect = stats.challenge_correct || 0;
+
+    const totalAttempted = practiceAttempted + challengeAttempted;
+    const totalCorrect = practiceCorrect + challengeCorrect;
+    let accuracy = totalAttempted > 0 ? (totalCorrect / totalAttempted) * 100 : 0;
+    accuracy = Math.max(0, Math.min(100, accuracy));
+
+    res.json({
+      points: stats.points || 0,
+      accuracy: Math.round(accuracy * 10) / 10,
+      totalAttempted
     });
   } catch (error) {
     console.error("Error in getDashboardStats:", error);

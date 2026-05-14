@@ -222,6 +222,142 @@ export const getPracticeQuestionsOnly = (gradeLevelId, subjectId = null, userId 
   });
 };
 
+export const getAvailablePracticeQuestions = (userId, gradeLevelId, subjectId = null) => {
+  let sql;
+  let params;
+
+  if (subjectId) {
+    sql = `
+      SELECT q.id, q.content, q.difficulty_level, q.hint
+      FROM questions q
+      LEFT JOIN contest_questions cq ON q.id = cq.question_id
+      LEFT JOIN attempts a ON q.id = a.question_id
+        AND a.user_id = ? AND a.is_correct = TRUE
+      WHERE q.grade_level_id = ? AND q.subject_id = ?
+        AND cq.question_id IS NULL AND a.question_id IS NULL
+      ORDER BY q.difficulty_level, RAND()
+      LIMIT 20
+    `;
+    params = [userId, gradeLevelId, subjectId];
+  } else {
+    sql = `
+      SELECT DISTINCT q.id, q.content, q.difficulty_level, q.hint
+      FROM questions q
+      INNER JOIN user_subjects us ON q.subject_id = us.subject_id
+      LEFT JOIN contest_questions cq ON q.id = cq.question_id
+      LEFT JOIN attempts a ON q.id = a.question_id
+        AND a.user_id = ? AND a.is_correct = TRUE
+      WHERE q.grade_level_id = ? AND us.user_id = ?
+        AND cq.question_id IS NULL AND a.question_id IS NULL
+      ORDER BY q.difficulty_level, RAND()
+      LIMIT 20
+    `;
+    params = [userId, gradeLevelId, userId];
+  }
+
+  return new Promise((resolve, reject) => {
+    connection.query(sql, params, (err, results) => {
+      if (err) reject(err);
+      else resolve(results);
+    });
+  });
+};
+
+export const getFallbackPracticeQuestions = (userId, gradeLevelId) => {
+  const sql = `
+    SELECT q.id, q.content, q.difficulty_level, q.hint
+    FROM questions q
+    LEFT JOIN contest_questions cq ON q.id = cq.question_id
+    LEFT JOIN attempts a ON q.id = a.question_id
+      AND a.user_id = ? AND a.is_correct = TRUE
+    WHERE q.grade_level_id = ? AND cq.question_id IS NULL AND a.question_id IS NULL
+    ORDER BY q.difficulty_level, RAND()
+    LIMIT 20
+  `;
+
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [userId, gradeLevelId], (err, results) => {
+      if (err) reject(err);
+      else resolve(results);
+    });
+  });
+};
+
+export const getPracticeProgressCounts = (userId, gradeLevelId, subjectId = null) => {
+  let totalQuestionsSql;
+  let totalParams;
+  let answeredCorrectlySql;
+  let answeredParams;
+
+  if (subjectId) {
+    totalQuestionsSql = `
+      SELECT COUNT(*) as total
+      FROM questions q
+      LEFT JOIN contest_questions cq ON q.id = cq.question_id
+      WHERE q.grade_level_id = ?
+        AND q.subject_id = ?
+        AND cq.question_id IS NULL
+    `;
+    totalParams = [gradeLevelId, subjectId];
+
+    answeredCorrectlySql = `
+      SELECT COUNT(DISTINCT a.question_id) as answered_correctly
+      FROM attempts a
+      INNER JOIN questions q ON a.question_id = q.id
+      LEFT JOIN contest_questions cq ON q.id = cq.question_id
+      WHERE a.user_id = ?
+        AND a.is_correct = TRUE
+        AND q.grade_level_id = ?
+        AND q.subject_id = ?
+        AND cq.question_id IS NULL
+    `;
+    answeredParams = [userId, gradeLevelId, subjectId];
+  } else {
+    totalQuestionsSql = `
+      SELECT COUNT(DISTINCT q.id) as total
+      FROM questions q
+      INNER JOIN user_subjects us ON q.subject_id = us.subject_id
+      LEFT JOIN contest_questions cq ON q.id = cq.question_id
+      WHERE q.grade_level_id = ?
+        AND us.user_id = ?
+        AND cq.question_id IS NULL
+    `;
+    totalParams = [gradeLevelId, userId];
+
+    answeredCorrectlySql = `
+      SELECT COUNT(DISTINCT a.question_id) as answered_correctly
+      FROM attempts a
+      INNER JOIN questions q ON a.question_id = q.id
+      INNER JOIN user_subjects us ON q.subject_id = us.subject_id
+      LEFT JOIN contest_questions cq ON q.id = cq.question_id
+      WHERE a.user_id = ?
+        AND a.is_correct = TRUE
+        AND q.grade_level_id = ?
+        AND us.user_id = ?
+        AND cq.question_id IS NULL
+    `;
+    answeredParams = [userId, gradeLevelId, userId];
+  }
+
+  return Promise.all([
+    new Promise((resolve, reject) => {
+      connection.query(totalQuestionsSql, totalParams, (err, results) => {
+        if (err) reject(err);
+        else resolve(results[0]?.total || 0);
+      });
+    }),
+    new Promise((resolve, reject) => {
+      connection.query(answeredCorrectlySql, answeredParams, (err, results) => {
+        if (err) reject(err);
+        else resolve(results[0]?.answered_correctly || 0);
+      });
+    })
+  ]).then(([totalQuestions, answeredCorrectly]) => ({
+    totalQuestions,
+    answeredCorrectly
+  }));
+};
+
 export const getAllQuestions = () => {
   const sql = `
     SELECT q.*, gl.name as grade_level_name, s.name as subject_name,

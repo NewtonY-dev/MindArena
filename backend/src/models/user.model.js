@@ -78,6 +78,24 @@ export const getUserByEmail = (email) => {
   });
 };
 
+export const getUserAuthByEmail = (email) => {
+  const sql = `
+    SELECT u.id, u.email, u.password_hash, u.display_name, u.grade_level_id, u.points, u.role,
+           COUNT(us.subject_id) as subject_count
+    FROM users u
+    LEFT JOIN user_subjects us ON u.id = us.user_id
+    WHERE u.email = ?
+    GROUP BY u.id, u.email, u.password_hash, u.display_name, u.grade_level_id, u.points, u.role
+  `;
+
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [email], (err, results) => {
+      if (err) reject(err);
+      else resolve(results[0]);
+    });
+  });
+};
+
 export const getUserWithSubjects = (id) => {
   const sql = `
     SELECT u.id, u.email, u.display_name, u.grade_level_id, u.points, u.created_at,
@@ -105,6 +123,136 @@ export const getUserWithSubjects = (id) => {
         }
         resolve(user);
       }
+    });
+  });
+};
+
+export const getCurrentUserProfile = (id) => {
+  const sql = `
+    SELECT u.id, u.email, u.display_name, u.grade_level_id, u.points, u.created_at,
+           GROUP_CONCAT(us.subject_id) as subject_ids
+    FROM users u
+    LEFT JOIN user_subjects us ON u.id = us.user_id
+    WHERE u.id = ?
+    GROUP BY u.id, u.email, u.display_name, u.grade_level_id, u.points, u.created_at
+  `;
+
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [id], (err, results) => {
+      if (err) reject(err);
+      else {
+        const user = results[0];
+        if (!user) {
+          resolve(undefined);
+          return;
+        }
+
+        resolve({
+          id: user.id,
+          email: user.email,
+          displayName: user.display_name,
+          gradeLevelId: user.grade_level_id,
+          subjectIds: user.subject_ids ? user.subject_ids.split(',').map(Number) : [],
+          points: user.points
+        });
+      }
+    });
+  });
+};
+
+export const setupUserProfile = (userId, gradeLevelId, subjectIds) => {
+  return new Promise((resolve, reject) => {
+    connection.getConnection((connectionError, dbConnection) => {
+      if (connectionError) {
+        reject(connectionError);
+        return;
+      }
+
+      dbConnection.beginTransaction((transactionError) => {
+        if (transactionError) {
+          dbConnection.release();
+          reject(transactionError);
+          return;
+        }
+
+        dbConnection.query(
+          'UPDATE users SET grade_level_id = ? WHERE id = ?',
+          [gradeLevelId, userId],
+          (updateError, results) => {
+            if (updateError) {
+              return dbConnection.rollback(() => {
+                dbConnection.release();
+                reject(updateError);
+              });
+            }
+
+            if (results.affectedRows === 0) {
+              return dbConnection.rollback(() => {
+                dbConnection.release();
+                resolve(false);
+              });
+            }
+
+            dbConnection.query('DELETE FROM user_subjects WHERE user_id = ?', [userId], (deleteError) => {
+              if (deleteError) {
+                return dbConnection.rollback(() => {
+                  dbConnection.release();
+                  reject(deleteError);
+                });
+              }
+
+              const values = subjectIds.map((subjectId) => [userId, subjectId]);
+              dbConnection.query(
+                'INSERT INTO user_subjects (user_id, subject_id) VALUES ?',
+                [values],
+                (insertError) => {
+                  if (insertError) {
+                    return dbConnection.rollback(() => {
+                      dbConnection.release();
+                      reject(insertError);
+                    });
+                  }
+
+                  dbConnection.commit((commitError) => {
+                    if (commitError) {
+                      return dbConnection.rollback(() => {
+                        dbConnection.release();
+                        reject(commitError);
+                      });
+                    }
+
+                    dbConnection.release();
+                    resolve(true);
+                  });
+                }
+              );
+            });
+          }
+        );
+      });
+    });
+  });
+};
+
+export const getDashboardStatsByUser = (userId) => {
+  const sql = `
+    SELECT
+      u.points,
+      COUNT(DISTINCT a.id) as practice_attempted,
+      SUM(CASE WHEN a.is_correct = 1 THEN 1 ELSE 0 END) as practice_correct,
+      COUNT(DISTINCT ca.id) as challenge_attempted,
+      SUM(CASE WHEN ca.is_correct = 1 THEN 1 ELSE 0 END) as challenge_correct
+    FROM users u
+    LEFT JOIN attempts a ON u.id = a.user_id
+    LEFT JOIN challenge_attempts ca ON u.id = ca.user_id
+    WHERE u.id = ?
+    GROUP BY u.id, u.points
+  `;
+
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [userId], (err, results) => {
+      if (err) reject(err);
+      else resolve(results[0]);
     });
   });
 };

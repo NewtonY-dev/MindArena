@@ -147,3 +147,148 @@ export const getLeaderboardByGrade = (gradeLevelId, limit = 50) => {
     });
   });
 };
+
+export const getCorrectlyAnsweredQuestions = (userId, limit = 50) => {
+  const sql = `
+    SELECT a.id as attempt_id, a.question_id, a.answer_given, a.created_at,
+           q.content, q.correct_answer, q.difficulty_level, q.explanation,
+           gl.name as grade_level_name, s.name as subject_name
+    FROM attempts a
+    INNER JOIN questions q ON a.question_id = q.id
+    INNER JOIN grade_levels gl ON q.grade_level_id = gl.id
+    INNER JOIN subjects s ON q.subject_id = s.id
+    WHERE a.user_id = ? AND a.is_correct = TRUE
+    ORDER BY a.created_at DESC
+    LIMIT ?
+  `;
+
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [userId, limit], (err, results) => {
+      if (err) reject(err);
+      else resolve(results);
+    });
+  });
+};
+
+export const submitPracticeAttempt = ({ userId, questionId, answerGiven }) => {
+  return new Promise((resolve, reject) => {
+    connection.getConnection((connectionError, dbConnection) => {
+      if (connectionError) {
+        reject(connectionError);
+        return;
+      }
+
+      dbConnection.beginTransaction((transactionError) => {
+        if (transactionError) {
+          dbConnection.release();
+          reject(transactionError);
+          return;
+        }
+
+        dbConnection.query(
+          'SELECT correct_answer, hint FROM questions WHERE id = ?',
+          [questionId],
+          (questionError, questionResults) => {
+            if (questionError) {
+              return dbConnection.rollback(() => {
+                dbConnection.release();
+                reject(questionError);
+              });
+            }
+
+            if (questionResults.length === 0) {
+              return dbConnection.rollback(() => {
+                dbConnection.release();
+                resolve(null);
+              });
+            }
+
+            const question = questionResults[0];
+            const isCorrect = question.correct_answer.toLowerCase().trim() === answerGiven.toLowerCase().trim();
+
+            dbConnection.query(
+              'INSERT INTO attempts (user_id, question_id, answer_given, is_correct, created_at) VALUES (?, ?, ?, ?, NOW())',
+              [userId, questionId, answerGiven, isCorrect],
+              (attemptError, attemptResults) => {
+                if (attemptError) {
+                  return dbConnection.rollback(() => {
+                    dbConnection.release();
+                    reject(attemptError);
+                  });
+                }
+
+                dbConnection.query(
+                  `SELECT id FROM attempts
+                   WHERE user_id = ? AND question_id = ? AND is_correct = TRUE
+                   AND id != ?
+                   LIMIT 1`,
+                  [userId, questionId, attemptResults.insertId],
+                  (previousError, previousResults) => {
+                    if (previousError) {
+                      return dbConnection.rollback(() => {
+                        dbConnection.release();
+                        reject(previousError);
+                      });
+                    }
+
+                    const alreadyAnswered = previousResults.length > 0;
+
+                    const finalize = (pointsAwarded) => {
+                      dbConnection.query('SELECT points FROM users WHERE id = ?', [userId], (pointsError, pointsResults) => {
+                        if (pointsError) {
+                          return dbConnection.rollback(() => {
+                            dbConnection.release();
+                            reject(pointsError);
+                          });
+                        }
+
+                        const totalPoints = pointsResults[0]?.points || 0;
+                        dbConnection.commit((commitError) => {
+                          if (commitError) {
+                            return dbConnection.rollback(() => {
+                              dbConnection.release();
+                              reject(commitError);
+                            });
+                          }
+
+                          dbConnection.release();
+                          resolve({
+                            isCorrect,
+                            correctAnswer: question.correct_answer,
+                            hint: question.hint,
+                            pointsAwarded,
+                            totalPoints,
+                            alreadyAnswered
+                          });
+                        });
+                      });
+                    };
+
+                    if (isCorrect && !alreadyAnswered) {
+                      dbConnection.query(
+                        'UPDATE users SET points = points + 1 WHERE id = ?',
+                        [userId],
+                        (updateError) => {
+                          if (updateError) {
+                            return dbConnection.rollback(() => {
+                              dbConnection.release();
+                              reject(updateError);
+                            });
+                          }
+
+                          finalize(1);
+                        }
+                      );
+                    } else {
+                      finalize(0);
+                    }
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    });
+  });
+};
