@@ -4,7 +4,7 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "nodemon server.js",
     "dev": "nodemon server.js",
     "db:init": "node scripts/db-manager.js init",
     "db:health": "node scripts/db-manager.js health",

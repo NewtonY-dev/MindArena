@@ -1,4 +1,5 @@
 import connection from '../config/db.js';
+import {getSubjectIdsByGradeLevel} from './gradeSubject.model.js';
 
 export const createUsersTable = () => {
   const sql = `
@@ -40,6 +41,64 @@ export const createUser = (userData) => {
     connection.query(sql, [email, passwordHash, displayName, gradeLevelId], (err, results) => {
       if (err) reject(err);
       else resolve(results.insertId);
+    });
+  });
+};
+
+export const createUserWithDefaultSubjects = (userData) => {
+  const { email, passwordHash, displayName = null, gradeLevelId = null } = userData;
+
+  return new Promise((resolve, reject) => {
+    connection.getConnection(async (connErr, dbConnection) => {
+      if (connErr) return reject(connErr);
+
+      dbConnection.beginTransaction(async (transErr) => {
+        if (transErr) {
+          dbConnection.release();
+          return reject(transErr);
+        }
+
+        try {
+          const insertUserSql = `INSERT INTO users (email, password_hash, display_name, grade_level_id, points) VALUES (?, ?, ?, ?, 0)`;
+          const [insertResult] = await new Promise((res, rej) => {
+            dbConnection.query(insertUserSql, [email, passwordHash, displayName, gradeLevelId], (err, results) => {
+              if (err) rej(err);
+              else res([results]);
+            });
+          });
+
+          const userId = insertResult.insertId;
+
+          // get subject ids for the grade level
+          const subjectIds = await getSubjectIdsByGradeLevel(gradeLevelId);
+
+          if (subjectIds && subjectIds.length > 0) {
+            const values = subjectIds.map((sid) => [userId, sid]);
+            await new Promise((res, rej) => {
+              dbConnection.query('INSERT INTO user_subjects (user_id, subject_id) VALUES ?', [values], (err) => {
+                if (err) rej(err);
+                else res();
+              });
+            });
+          }
+
+          dbConnection.commit((commitErr) => {
+            if (commitErr) {
+              return dbConnection.rollback(() => {
+                dbConnection.release();
+                reject(commitErr);
+              });
+            }
+            dbConnection.release();
+            resolve({ userId, subjectIds });
+          });
+        } catch (error) {
+          return dbConnection.rollback(() => {
+            dbConnection.release();
+            reject(error);
+          });
+        }
+      });
     });
   });
 };
@@ -423,6 +482,62 @@ export const searchUsers = (query, gradeLevelId = null, limit = 20) => {
     connection.query(sql, params, (err, results) => {
       if (err) reject(err);
       else resolve(results);
+    });
+  });
+};
+
+export const createUserWithSubjects = (email, passwordHash, displayName, gradeLevelId) => {
+  return new Promise((resolve, reject) => {
+    connection.getConnection((err, dbConnection) => {
+      if (err) return reject(err);
+
+      dbConnection.beginTransaction(async (txErr) => {
+        if (txErr) { dbConnection.release(); return reject(txErr); }
+
+        try {
+          // 1. Create user with grade_level_id set
+          const userResult = await new Promise((res, rej) => {
+            dbConnection.query(
+              'INSERT INTO users (email, password_hash, display_name, grade_level_id, points) VALUES (?, ?, ?, ?, 0)',
+              [email, passwordHash, displayName, gradeLevelId],
+              (err, results) => err ? rej(err) : res(results)
+            );
+          });
+
+          const userId = userResult.insertId;
+
+          // 2. Fetch default subjects for this grade
+          const subjectIds = await getSubjectIdsByGradeLevel(gradeLevelId);
+
+          // 3. Batch insert user-subject associations
+          if (subjectIds.length > 0) {
+            const values = subjectIds.map(sid => [userId, sid]);
+            await new Promise((res, rej) => {
+              dbConnection.query(
+                'INSERT INTO user_subjects (user_id, subject_id) VALUES ?',
+                [values],
+                err => err ? rej(err) : res()
+              );
+            });
+          }
+
+          dbConnection.commit((commitErr) => {
+            if (commitErr) {
+              return dbConnection.rollback(() => {
+                dbConnection.release();
+                reject(commitErr);
+              });
+            }
+            dbConnection.release();
+            resolve({ userId, subjectIds });
+          });
+        } catch (error) {
+          dbConnection.rollback(() => {
+            dbConnection.release();
+            reject(error);
+          });
+        }
+      });
     });
   });
 };

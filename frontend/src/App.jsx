@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout/Layout';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import ProfileSetup from './pages/auth/ProfileSetup';
 import Dashboard from './pages/user/Dashboard';
 import Practice from './pages/user/Practice';
 import Contest from './pages/user/Contest';
@@ -27,11 +26,6 @@ function ProtectedRoute({ children }) {
 
   if (!user) {
     return <Navigate to="/login" />;
-  }
-
-  // Admins don't need profile setup, redirect them to admin dashboard
-  if (needsProfileSetup && user.role == 'user') {
-    return <Navigate to="/profile-setup" />;
   }
 
   return <Layout>{children}</Layout>;
@@ -59,32 +53,6 @@ function AdminProtectedRoute({ children }) {
   return <Layout>{children}</Layout>;
 }
 
-function ProfileSetupRoute({ children }) {
-  const { user, loading, needsProfileSetup } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-spinner"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
- if (!needsProfileSetup && user.role === 'admin') {
-    return <Navigate to="/admin" />;
-  }
-
-  // Only show profile setup if it's needed
-  if (!needsProfileSetup) {
-    return <Navigate to="/dashboard" />;
-  }
-
-  return <Layout>{children}</Layout>;
-}
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
@@ -116,11 +84,6 @@ function AppRoutes() {
         <PublicRoute>
           <Register />
         </PublicRoute>
-      } />
-      <Route path="/profile-setup" element={
-        <ProfileSetupRoute>
-          <ProfileSetup />
-        </ProfileSetupRoute>
       } />
       <Route path="/dashboard" element={
         <ProtectedRoute>

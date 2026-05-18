@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight, FiCheckCircle, FiUserPlus } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight, FiCheckCircle, FiUserPlus, FiBook } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
 import './Auth.css';
 
 export default function Register() {
@@ -17,6 +18,9 @@ export default function Register() {
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
   const [success, setSuccess] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
+  const [gradeLevels, setGradeLevels] = useState([]);
+  const [selectedGrade, setSelectedGrade] = useState('');
+  const [gradeLoading, setGradeLoading] = useState(true);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -148,6 +152,33 @@ export default function Register() {
   }, []);
 
   useEffect(() => {
+    const loadGrades = async () => {
+      try {
+        // centralized API helper which has consistent error handling
+        const data = await api.getGradeLevels();
+        // API returns { gradeLevels: [...] }
+        let grades = data.gradeLevels || [];
+        // If backend returns an array directly, this handle that too
+        if (!grades.length && Array.isArray(data)) grades = data;
+        // Fallback: provide default grade list so UI remains usable during development
+        if (!grades.length) {
+          grades = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `Grade ${i + 1}` }));
+          console.warn('No grade levels from API — using fallback defaults');
+        }
+        setGradeLevels(grades);
+      } catch (err) {
+        console.error('Failed to load grades:', err);
+        // fallback default
+        const fallback = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `Grade ${i + 1}` }));
+        setGradeLevels(fallback);
+      } finally {
+        setGradeLoading(false);
+      }
+    };
+    loadGrades();
+  }, []);
+
+  useEffect(() => {
     // Calculate password strength
     if (password.length === 0) {
       setPasswordStrength('');
@@ -192,14 +223,18 @@ export default function Register() {
       setError('Password must be at least 6 characters');
       return;
     }
+    if (!selectedGrade) {
+      setError('Please select your grade level');
+      return;
+    }
 
     setLoading(true);
 
     try {
-      await register(email, password);
+      await register(email, password, selectedGrade);
       setSuccess(true);
       setTimeout(() => {
-        navigate('/profile-setup');
+        navigate('/dashboard');
       }, 1500);
     } catch (err) {
       console.error('Registration error:', err);
@@ -230,7 +265,7 @@ export default function Register() {
     if (error) setError('');
   };
 
-  const isFormValid = email && password && confirmPassword && password === confirmPassword && !loading;
+  const isFormValid = email && password && confirmPassword && password === confirmPassword && selectedGrade && !loading;
 
   return (
     <div className="auth-container">
@@ -346,6 +381,31 @@ export default function Register() {
                 )}
               </div>
             )}
+          </div>
+
+          <div className={`form-group ${gradeLoading ? '' : ''}`}>
+            <label>Grade Level</label>
+            <div className="grade-select-grid">
+              {gradeLoading ? (
+                <div>Loading grades...</div>
+              ) : gradeLevels.length ? (
+                gradeLevels.map((grade) => (
+                  <button
+                    key={grade.id}
+                    type="button"
+                    className={`grade-chip ${selectedGrade === grade.id ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedGrade(grade.id);
+                      if (error) setError('');
+                    }}
+                  >
+                    {grade.name}
+                  </button>
+                ))
+              ) : (
+                <div>No grade levels available</div>
+              )}
+            </div>
           </div>
 
           <button 

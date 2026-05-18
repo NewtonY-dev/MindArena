@@ -18,6 +18,7 @@ import {
   createContestAttemptsTable
 } from '../models/contest.model.js';
 import { fixContestsTable, fixQuestionsTable, fixContestParticipantsTable } from './fixTables.js';
+import { createGradeSubjectsTable } from '../models/gradeSubject.model.js';
 
 export const initializeDatabase = async () => {
   try {
@@ -28,6 +29,7 @@ export const initializeDatabase = async () => {
     await fixQuestionsTable();
     await createAttemptsTable();
     await createUserSubjectsTable();
+    await createGradeSubjectsTable();
     await createChallengeRoomsTable();
     await createChallengeParticipantsTable();
     await createChallengeQuestionsTable();

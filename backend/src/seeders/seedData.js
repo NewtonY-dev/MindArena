@@ -3,8 +3,7 @@ import db from '../config/db.js';
 export const seedGradeLevels = () => {
   const sql = `
     INSERT IGNORE INTO grade_levels (id, name) VALUES
-    (1, 'Grade 1'), (2, 'Grade 2'), (3, 'Grade 3'), (4, 'Grade 4'), (5, 'Grade 5'),
-    (6, 'Grade 6'), (7, 'Grade 7'), (8, 'Grade 8'), (9, 'Grade 9'), (10, 'Grade 10'),
+    (9, 'Grade 9'), (10, 'Grade 10'),
     (11, 'Grade 11'), (12, 'Grade 12')
   `;
   return new Promise((resolve, reject) => {
@@ -34,23 +33,25 @@ export const seedSubjects = () => {
   });
 };
 
+export const seedGradeSubjects = () => {
+  const sql = `
+    INSERT IGNORE INTO grade_subjects (grade_level_id, subject_id) VALUES
+    (9,1),(9,2),(9,3),(9,4),(9,5),(9,6),(9,7),(9,8),(9,9),
+    (10,1),(10,2),(10,3),(10,4),(10,5),(10,6),(10,7),(10,8),(10,9),
+    (11,1),(11,2),(11,3),(11,4),(11,5),(11,6),(11,7),(11,8),(11,9),
+    (12,1),(12,2),(12,3),(12,4),(12,5),(12,6),(12,7),(12,8),(12,9)
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(sql, (err) => {
+      if (err) reject(err);
+      else { console.log('Grade subjects seeded successfully'); resolve(); }
+    });
+  });
+};
+
 export const seedQuestions = () => {
   const sql = `
     INSERT IGNORE INTO questions (id, grade_level_id, subject_id, content, correct_answer, hint, difficulty_level) VALUES
-    -- Math Questions - Grade 5
-    (1, 5, 1, 'What is 15 + 27?', '42', 'Add the tens and ones separately.', 'easy'),
-    (2, 5, 1, 'What is 8 Ã— 7?', '56', 'Think of it as 8 groups of 7.', 'easy'),
-    (3, 5, 1, 'What is 144 Ã· 12?', '12', 'Think of what number multiplied by 12 equals 144.', 'medium'),
-    (4, 5, 1, 'Solve for x: 3x = 12', '4', 'Divide both sides by 3.', 'medium'),
-    (5, 5, 1, 'What is the perimeter of a rectangle with length 8 and width 5?', '26', 'Add all four sides: 8 + 8 + 5 + 5.', 'medium'),
-
-    -- English Questions - Grade 5
-    (6, 5, 2, 'What is the past tense of "go"?', 'went', 'This is an irregular verb.', 'easy'),
-    (7, 5, 2, 'Which is a noun: run, running, or runner?', 'runner', 'A noun names a person, place, or thing.', 'easy'),
-    (8, 5, 2, 'Complete the sentence: The dog ___ over the fence.', 'jumped', 'Use past tense for a completed action.', 'easy'),
-    (9, 5, 2, 'What is the plural of "child"?', 'children', 'This is an irregular plural.', 'medium'),
-    (10, 5, 2, 'Which word is an adjective in "The big red ball"?', 'big, red', 'Adjectives describe nouns.', 'medium'),
-
     -- Math Questions - Grade 10
     (11, 10, 1, 'Solve: 2xÂ² + 5x - 3 = 0', 'x = 0.5, x = -3', 'Use the quadratic formula.', 'hard'),
     (12, 10, 1, 'What is the derivative of xÂ³ + 2x?', '3xÂ² + 2', 'Apply the power rule.', 'hard'),
@@ -94,6 +95,7 @@ export const seedDatabase = async () => {
   try {
     await seedGradeLevels();
     await seedSubjects();
+    await seedGradeSubjects();
     await seedQuestions();
     console.log('Database seeded successfully');
   } catch (error) {

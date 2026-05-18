@@ -7,11 +7,11 @@ const getAuthHeaders = () => {
 
 export const api = {
   // Auth
-  async register(email, password) {
+  async register(email, password, gradeLevelId) {
     const res = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, gradeLevelId }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Registration failed');
@@ -74,6 +74,14 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Failed to get grade levels');
     return data;
   },
+
+  // Grade Level Subjects
+  async getGradeLevelSubjects(gradeLevelId) {
+    const res = await fetch(`${API_BASE_URL}/grade-levels/${gradeLevelId}/subjects`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to get grade subjects');
+    return data;
+ },
 
   // Practice Questions
   async getQuestions(subjectId = null) {

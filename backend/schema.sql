@@ -34,6 +34,18 @@ CREATE TABLE subjects (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Grade-Subjects Junction Table
+-- Defines default subjects assigned to each grade level
+CREATE TABLE grade_subjects (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    grade_level_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (grade_level_id) REFERENCES grade_levels(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_grade_subject (grade_level_id, subject_id)
+);
+
 -- Users Table
 -- Stores student accounts with authentication and profile information
 CREATE TABLE users (
@@ -203,6 +215,14 @@ INSERT INTO subjects (id, name) VALUES
 (10, 'Art'),
 (11, 'Music'),
 (12, 'Physical Education');
+
+-- Assign default subjects per grade
+INSERT INTO grade_subjects (grade_level_id, subject_id) VALUES
+-- High grades (9-12): add specialized sciences + CS
+(9, 1), (9, 2), (9, 3), (9, 4), (9, 5), (9, 6), (9, 7), (9, 8), (9, 9),
+(10, 1), (10, 2), (10, 3), (10, 4), (10, 5), (10, 6), (10, 7), (10, 8), (10, 9),
+(11, 1), (11, 2), (11, 3), (11, 4), (11, 5), (11, 6), (11, 7), (11, 8), (11, 9),
+(12, 1), (12, 2), (12, 3), (12, 4), (12, 5), (12, 6), (12, 7), (12, 8), (12, 9);
 
 -- Insert Sample Questions
 -- Math Questions - Grade 5

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { createUser, checkEmailExists, getUserAuthByEmail } from '../models/user.model.js';
+import { createUser, createUserWithDefaultSubjects, checkEmailExists, getUserAuthByEmail } from '../models/user.model.js';
+import {getGradeLevelById} from '../models/gradeLevel.model.js';
 import config from '../config/index.js';
 
 export const registerUser = async (req, res) => {
@@ -10,7 +11,7 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ error: "Invalid request body" });
     }
     
-    const { email, password } = req.body;
+    const { email, password, gradeLevelId } = req.body;
     
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
@@ -20,17 +21,30 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
+    if(!gradeLevelId) {
+      return res.status(400).json({ error: "Grade level is required" });
+    }
+
     const userExists = await checkEmailExists(email);
     if (userExists) {
       return res.status(409).json({ error: "User already exists" });
     }
 
+    // Validate grade exists
+    const grade = await getGradeLevelById(gradeLevelId);
+    if (!grade) {
+      return res.status(400).json({ error: "Invalid grade level" });
+    }
+
     const displayName = email.split('@')[0];
     const hashedPassword = await bcrypt.hash(password, config.BCRYPT_ROUNDS);
-    const userId = await createUser({
+
+    // Create user + assign default subjects in one transaction
+    const {userId, subjectIds} = await createUserWithDefaultSubjects({
       email,
       passwordHash: hashedPassword,
-      displayName
+      displayName,
+      gradeLevelId
     });
 
     const token = jwt.sign(
@@ -45,8 +59,11 @@ export const registerUser = async (req, res) => {
         id: userId,
         email,
         displayName,
+        gradeLevelId,
+        subjectIds,
         points: 0,
-        isProfileComplete: false
+        role: 'user',
+        isProfileComplete: true
       },
       token
     });

@@ -280,3 +280,31 @@
     padding-right: 45px;
   }
 }
+
+.grade-select-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.grade-chip {
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.grade-chip.selected {
+  border-color: #667eea;
+  background: #667eea;
+  color: white;
+}
+
+.grade-chip:hover:not(.selected) {
+  border-color: #667eea;
+  background: #f0f2ff;
+}

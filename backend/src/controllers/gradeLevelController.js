@@ -3,6 +3,7 @@ import {
   getGradeLevelById, 
   createGradeLevel 
 } from "../models/gradeLevel.model.js";
+import { getSubjectsByGradeLevel } from "../models/gradeSubject.model.js";
 
 export const getAllGradeLevelsHandler = async (req, res) => {
   try {
@@ -50,5 +51,16 @@ export const createGradeLevelHandler = async (req, res) => {
     } else {
       res.status(500).json({ error: "Internal server error" });
     }
+  }
+};
+
+export const getGradeLevelSubjectsHandler = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const subjects = await getSubjectsByGradeLevel(id);
+    res.json({ subjects });
+  } catch (error) {
+    console.error("Error getting grade level subjects:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };

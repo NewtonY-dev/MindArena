@@ -6,7 +6,6 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -22,16 +21,9 @@ export function AuthProvider({ children }) {
     try {
       const userData = await api.getCurrentUser();
       setUser(userData);
-      // Check if user needs profile setup (no grade level set and not admin)
-      if (userData.role !== 'admin' && !userData.gradeLevelId) {
-        setNeedsProfileSetup(true);
-      } else {
-        setNeedsProfileSetup(false);
-      }
     } catch (error) {
       localStorage.removeItem('token');
       setUser(null);
-      setNeedsProfileSetup(false);
     } finally {
       setLoading(false);
     }
@@ -41,35 +33,23 @@ export function AuthProvider({ children }) {
     const data = await api.login(email, password);
     localStorage.setItem('token', data.token);
     setUser(data.user);
-    // Check if user needs profile setup (no grade level set and not admin)
-    if (data.user.role !== 'admin' && !data.user.gradeLevelId) {
-      setNeedsProfileSetup(true);
-    } else {
-      setNeedsProfileSetup(false);
-    }
     return data;
   };
 
-  const register = async (email, password) => {
-    const data = await api.register(email, password);
+  const register = async (email, password, gradeLevelId) => {
+    const data = await api.register(email, password, gradeLevelId);
     localStorage.setItem('token', data.token);
     setUser(data.user);
-    // Only students need profile setup after registration
-    if (data.user.role !== 'admin') {
-      setNeedsProfileSetup(true);
-    }
     return data;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    setNeedsProfileSetup(false);
   };
 
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
-    setNeedsProfileSetup(false);
   };
 
   const refreshUser = async () => {
@@ -86,7 +66,6 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{ 
       user, 
       loading, 
-      needsProfileSetup,
       login, 
       register, 
       logout, 

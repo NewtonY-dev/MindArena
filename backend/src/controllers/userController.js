@@ -1,3 +1,4 @@
+import { getSubjectIdsByGradeLevel } from "../models/gradeSubject.model.js";
 import { getCurrentUserProfile, setupUserProfile as saveUserProfile, getDashboardStatsByUser } from "../models/user.model.js";
 
 export const getCurrentUser = async (req, res) => {
@@ -29,14 +30,19 @@ export const setupUserProfile = async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    
-    if (!gradeLevelId || !subjectIds || !Array.isArray(subjectIds) || subjectIds.length === 0) {
-      return res.status(400).json({ 
-        error: "gradeLevelId and subjectIds array are required" 
-      });
+
+    if (!gradeLevelId) {
+      return res.status(400).json({ error: "gradeLevelId is required" });
+    }
+
+    let finalSubjectIds = subjectIds;
+
+    // Auto-assign default subjects if no subjectIds provided
+    if (!finalSubjectIds || !Array.isArray(finalSubjectIds) || finalSubjectIds.length === 0) {
+      finalSubjectIds = await getSubjectIdsByGradeLevel(gradeLevelId);   
     }
     
-    const updated = await saveUserProfile(userId, gradeLevelId, subjectIds);
+    const updated = await saveUserProfile(userId, gradeLevelId, finalSubjectIds);
 
     if (!updated) {
       return res.status(404).json({ error: "User not found" });
@@ -47,7 +53,7 @@ export const setupUserProfile = async (req, res) => {
       user: {
         id: userId,
         gradeLevelId,
-        subjectIds
+        subjectIds: finalSubjectIds
       }
     });
   } catch (error) {

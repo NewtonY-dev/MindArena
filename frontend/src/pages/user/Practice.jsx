@@ -27,14 +27,23 @@ export default function Practice() {
     }
   }, [selectedSubject, selectedDifficulty, subjects]);
 
-  const loadSubjects = async () => {
-    try {
-      const data = await api.getSubjects();
-      setSubjects(data.subjects || []);
-    } catch (error) {
-      console.error('Failed to load subjects:', error);
-    }
-  };
+const loadSubjects = async () => {
+  try {
+    const userData = await api.getCurrentUser();
+
+    // Fetch all subjects, then filter to user's enrolled ones
+    const allSubjectsData = await api.getSubjects();
+    const enrolledSubjectIds = userData.subjectIds || [];
+
+    const filtered = (allSubjectsData.subjects || []).filter(
+      s => enrolledSubjectIds.includes(s.id)
+    );
+
+    setSubjects(filtered);
+  } catch (error) {
+    console.error('Failed to load subjects:', error);
+  }
+};
 
   const loadQuestions = async (subjectId, difficulty) => {
     setLoading(true);
