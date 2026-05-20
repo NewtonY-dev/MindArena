@@ -65,7 +65,8 @@ app.use(`${config.API_PREFIX}/attempts`, authMiddleware, profileCompletionMiddle
 app.use(`${config.API_PREFIX}/questions`, authMiddleware, profileCompletionMiddleware, questionRoutes);
 app.use(`${config.API_PREFIX}/contests`, authMiddleware, profileCompletionMiddleware, contestRoutes);
 app.use(`${config.API_PREFIX}/challenges`, authMiddleware, profileCompletionMiddleware, challengeRoutes);
-app.use(`${config.API_PREFIX}/leaderboard`, authMiddleware, profileCompletionMiddleware, leaderboardRoutes);
+// Leaderboard should be accessible once authenticated; profile completion enforced elsewhere
+app.use(`${config.API_PREFIX}/leaderboard`, authMiddleware, leaderboardRoutes);
 
 // Admin routes (separate auth)
 app.use(`${config.API_PREFIX}/admin`, adminRoutes);

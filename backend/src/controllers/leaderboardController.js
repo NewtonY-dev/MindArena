@@ -23,8 +23,9 @@ export const getLeaderboard = async (req, res) => {
       
       const gradeLevelId = userResults[0].grade_level_id;
       
+      // If user has no grade level set, return an empty leaderboard instead of blocking access.
       if (!gradeLevelId) {
-        return res.status(400).json({ error: "User grade level not set" });
+        return res.json({ gradeLevelId: null, rankings: [] });
       }
       
       // Get leaderboard for this grade level

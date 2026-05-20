@@ -115,13 +115,7 @@ export default function Layout({ children }) {
                   <Swords size={20} color="white" />
                   <span className="nav-label">1v1 Challenge</span>
                 </Link>
-                <Link 
-                  to="/leaderboard" 
-                  className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}
-                >
-                  <Trophy size={20} color="white" />
-                  <span className="nav-label">Leaderboard</span>
-                </Link>
+                {/* Leaderboard moved to Dashboard - link removed from header */}
               </>
             )}
           </nav>
@@ -219,14 +213,7 @@ export default function Layout({ children }) {
                 <Swords size={20} color="white" />
                 <span className="nav-label">1v1 Challenge</span>
               </Link>
-              <Link 
-                to="/leaderboard" 
-                className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}
-                onClick={closeSidebar}
-              >
-                <Trophy size={20} color="white" />
-                <span className="nav-label">Leaderboard</span>
-              </Link>
+              {/* Leaderboard moved to Dashboard - link removed from mobile sidebar */}
             </>
           )}
         </div>

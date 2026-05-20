@@ -6,7 +6,6 @@ import Register from './pages/auth/Register';
 import Dashboard from './pages/user/Dashboard';
 import Practice from './pages/user/Practice';
 import Contest from './pages/user/Contest';
-import Leaderboard from './pages/user/Leaderboard';
 import Challenge from './pages/user/Challenge';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminQuestionCreate from './pages/admin/AdminQuestionCreate';
@@ -100,11 +99,7 @@ function AppRoutes() {
           <Contest />
         </ProtectedRoute>
       } />
-      <Route path="/leaderboard" element={
-        <ProtectedRoute>
-          <Leaderboard />
-        </ProtectedRoute>
-      } />
+      {/* Leaderboard route removed: leaderboard now embedded on Dashboard */}
       <Route path="/challenge" element={
         <ProtectedRoute>
           <Challenge />
